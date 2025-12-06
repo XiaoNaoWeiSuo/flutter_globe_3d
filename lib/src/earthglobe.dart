@@ -75,7 +75,7 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
   void dispose() {
     widget.controller.stopPhysics();
     widget.controller.removeListener(_update);
-    
+
     // [新增] 清理监听和计时器
     _animController.removeListener(_autoRotateTick);
     _autoRotateTimer?.cancel();
@@ -351,7 +351,7 @@ class _GlobePainter extends CustomPainter {
       Paint()
         ..shader = shader
         ..isAntiAlias = true
-        ..filterQuality = FilterQuality.high, 
+        ..filterQuality = FilterQuality.high,
     );
     _drawConnections(canvas, size);
   }
