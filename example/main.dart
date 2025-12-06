@@ -26,34 +26,10 @@ class _MyGlobeAppState extends State<MyGlobeApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView(
-        children: [
-          Container(height: 100),
-          Container(
-            decoration: BoxDecoration(color: Colors.black),
-            child: Row(
-              children: [
-                Flutter3DGlobe(
-                  controller: _controller,
-                  texture: AssetImage('assets/example.jpg'),
-                  radius: 150,
-                ),
-                Column(
-                  children: [
-                    Text(
-                      "example",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+      body: Flutter3DGlobe(
+        controller: _controller,
+        texture: AssetImage('assets/example.jpg'),
+        radius: 150,
       ),
     );
   }

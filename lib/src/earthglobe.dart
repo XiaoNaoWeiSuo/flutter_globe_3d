@@ -42,10 +42,13 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
   double _baseScale = 1.0;
   bool _hasLoadingStarted = false;
 
-  // [新增] 自动旋转相关的变量
-  Timer? _autoRotateTimer; // 空闲检测计时器
-  bool _isAutoRotating = true; // 默认一开始是自转的
-  final int _idleSeconds = 3; // 松手后几秒开始恢复
+  Timer? _autoRotateTimer;
+  bool _isAutoRotating = true;
+  final int _idleSeconds = 3;
+
+  // 添加用于区分缩放和拖拽的状态
+  bool _isScaling = false;
+  Offset _lastFocalPoint = Offset.zero;
 
   @override
   void initState() {
@@ -55,7 +58,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       vsync: this,
     )..repeat();
 
-    // [新增] 监听动画帧，用于驱动自动旋转
     _animController.addListener(_autoRotateTick);
 
     widget.controller.startPhysics(this);
@@ -76,7 +78,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
     widget.controller.stopPhysics();
     widget.controller.removeListener(_update);
 
-    // [新增] 清理监听和计时器
     _animController.removeListener(_autoRotateTick);
     _autoRotateTimer?.cancel();
     _animController.dispose();
@@ -95,14 +96,11 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
     }
   }
 
-  // [新增] 每一帧动画的回调：处理自动旋转
   void _autoRotateTick() {
     if (_isAutoRotating) {
-      // 模拟微小的向左滑动信号，让地球自转
-      // 参数1 (dx): 1.5 表示水平旋转速度
-      // 参数2 (dy): 0 表示垂直不旋转
-      // 参数3 (sensitivity): 灵敏度，根据半径调整
-      widget.controller.onDragUpdate(1.5, 0, 1.0 / widget.radius);
+      final double targetSpeedRad = widget.controller.config.autoRotateSpeed;
+      final double dx = targetSpeedRad * widget.radius;
+      widget.controller.onDragUpdate(dx, 0, 1.0 / widget.radius);
     }
   }
 
@@ -177,9 +175,12 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
 
+    // 修改容器尺寸为 1.5 倍半径
+    final containerSize = widget.radius * 1.6;
+
     return Container(
-      width: widget.radius * 2,
-      height: widget.radius * 2,
+      width: containerSize,
+      height: containerSize,
       color: widget.backgroundColor,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -188,33 +189,41 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            // [修改] 开始拖拽：取消计时器，停止自动旋转
             onScaleStart: (d) {
               _autoRotateTimer?.cancel();
               _isAutoRotating = false;
 
               _baseScale = widget.controller.zoom;
+              _lastFocalPoint = d.focalPoint;
+              _isScaling = false;
               widget.controller.onDragStart();
             },
             onScaleUpdate: (d) {
-              if (d.scale != 1.0) {
+              // 判断是否是缩放操作（scale 值变化超过阈值）
+              final isCurrentlyScaling = (d.scale - 1.0).abs() > 0.01;
+              
+              if (isCurrentlyScaling) {
+                // 只处理缩放
+                _isScaling = true;
                 widget.controller.zoom = _baseScale * d.scale;
+              } else if (!_isScaling) {
+                // 只在非缩放状态下处理拖拽
+                final sensitivity = 3.0 / size.width;
+                widget.controller.onDragUpdate(
+                  d.focalPointDelta.dx,
+                  d.focalPointDelta.dy,
+                  sensitivity,
+                );
               }
-              final sensitivity = 3.0 / size.width;
-              widget.controller.onDragUpdate(
-                d.focalPointDelta.dx,
-                d.focalPointDelta.dy,
-                sensitivity,
-              );
+              
+              _lastFocalPoint = d.focalPoint;
             },
-            // [修改] 结束拖拽：启动计时器，准备恢复自动旋转
             onScaleEnd: (d) {
               widget.controller.onDragEnd(d.velocity.pixelsPerSecond, dpr);
+              _isScaling = false;
 
               _autoRotateTimer = Timer(Duration(seconds: _idleSeconds), () {
                 if (mounted) {
-                  // 这里只恢复了水平自转开关
-                  // 如果需要“垂直归正”，可以在 _autoRotateTick 中添加垂直方向的阻尼逻辑
                   _isAutoRotating = true;
                 }
               });
@@ -323,6 +332,7 @@ class _GlobePainter extends CustomPainter {
 
     shader.setFloat(0, size.width);
     shader.setFloat(1, size.height);
+
     shader.setFloat(2, pixelRatio);
     shader.setFloat(3, animValue * 100);
     shader.setImageSampler(0, image);
@@ -333,19 +343,6 @@ class _GlobePainter extends CustomPainter {
     }
     shader.setFloat(13, controller.zoom);
 
-    final transform = canvas.getTransform();
-    final mat = vm.Matrix4.fromFloat64List(transform);
-    mat.invert();
-    final invStorage = mat.storage;
-
-    for (int i = 0; i < 16; i++) {
-      shader.setFloat(14 + i, invStorage[i]);
-    }
-
-    // [关键修改]
-    // 增加 filterQuality: FilterQuality.high
-    // 增加 isAntiAlias: true
-    // 这会让 Shader 在采样纹理时使用更平滑的插值算法
     canvas.drawRect(
       Offset.zero & size,
       Paint()
@@ -353,6 +350,7 @@ class _GlobePainter extends CustomPainter {
         ..isAntiAlias = true
         ..filterQuality = FilterQuality.high,
     );
+
     _drawConnections(canvas, size);
   }
 
@@ -401,18 +399,18 @@ class _GlobePainter extends CustomPainter {
         final paint = Paint()
           ..style = PaintingStyle.stroke
           ..strokeCap = StrokeCap.round
-          ..isAntiAlias = true; // 线条也开启抗锯齿
+          ..isAntiAlias = true;
 
         canvas.drawPath(
           path,
           paint
-            ..color = conn.color.withOpacity(0.3)
+            ..color = conn.color.withAlpha(75)
             ..strokeWidth = conn.width + 2,
         );
         canvas.drawPath(
           path,
           paint
-            ..color = conn.color.withOpacity(0.8)
+            ..color = conn.color.withAlpha(200)
             ..strokeWidth = conn.width,
         );
       }

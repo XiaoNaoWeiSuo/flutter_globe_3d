@@ -1,3 +1,7 @@
+## 1.1.5
+
+* Fix: Stuttering caused by scaling
+
 ## 1.1.4
 
 * Fix: layout/display defect — component now adapts to arbitrary dynamic layouts (ListView, Column, Row, Stack, etc.)

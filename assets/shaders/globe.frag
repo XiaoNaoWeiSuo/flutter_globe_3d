@@ -2,26 +2,22 @@
 
 precision highp float;
 
-// 0,1: 逻辑分辨率
-uniform vec2 uLogicalRes;
-// 2: 设备像素比
+// [0, 1] 组件的逻辑尺寸 (width, height)
+uniform vec2 uLogicalSize;
+
+// [2] 设备像素比
 uniform float uPixelRatio;
-// 3: 时间
+
+// [3] 时间
 uniform float iTime;
 
-// 旋转矩阵
+// [4-12] 旋转矩阵 (3x3)
 uniform vec3 uRotCol0; 
 uniform vec3 uRotCol1;
 uniform vec3 uRotCol2;
 
-// 13: 缩放
+// [13] 缩放
 uniform float iZoom;
-
-// [新增] 14-17: 逆变换矩阵的 4 个列向量 (用于将全局坐标还原为局部坐标)
-uniform vec4 uInvCol0;
-uniform vec4 uInvCol1;
-uniform vec4 uInvCol2;
-uniform vec4 uInvCol3;
 
 uniform sampler2D iChannel0;
 
@@ -31,9 +27,19 @@ uniform sampler2D iChannel0;
 
 out vec4 fragColor;
 
-vec3 getRayDirection(vec2 fragCoord, float currentDist) {
-    vec2 p = (2.0 * fragCoord - uLogicalRes) / min(uLogicalRes.x, uLogicalRes.y);
-
+vec3 getRayDirection(vec2 uv, float currentDist) {
+    // uv 已经是 0..1 的归一化坐标
+    // 映射到 -1..1
+    vec2 p = uv * 2.0 - 1.0;
+    
+    // 修正宽高比 (保持球体圆润)
+    float aspect = uLogicalSize.x / uLogicalSize.y;
+    if (aspect > 1.0) {
+        p.x *= aspect;
+    } else {
+        p.y /= aspect;
+    }
+    
     // Y-Up 修正
     return normalize(vec3(p.x, -p.y, -currentDist));
 }
@@ -47,21 +53,22 @@ float intersectSphere(vec3 ro, vec3 rd, float r) {
 }
 
 void main() {
+    // 【最终修复】FlutterFragCoord() 返回的是逻辑坐标
+    // 不受父级 Row/Column/AppBar 影响！
+    vec2 fragCoord = FlutterFragCoord().xy;
+    
+    // 直接归一化到 0..1
+    vec2 uv = fragCoord / uLogicalSize;
+    
+    // 边界裁剪
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+        fragColor = vec4(0.0);
+        return;
+    }
+
     float currentCameraDist = BASE_CAMERA_DIST / max(0.1, iZoom);
     vec3 ro = vec3(0.0, 0.0, currentCameraDist);
-    
-    // 1. 获取屏幕物理坐标 (FlutterFragCoord 保证了跨平台原点一致性)
-    vec2 screenPos = FlutterFragCoord().xy;
-    
-    // 2. 重组逆矩阵 (Global Physical -> Local Logical)
-    mat4 globalToLocal = mat4(uInvCol0, uInvCol1, uInvCol2, uInvCol3);
-    
-    // 3. 乘以逆矩阵，直接还原出当前像素在组件内的逻辑坐标
-    // 这一步自动处理了 Offset(滚动位置)、Scale(DPR)、甚至 Rotation
-    vec4 localPos = globalToLocal * vec4(screenPos, 0.0, 1.0);
-    vec2 fragCoord = localPos.xy;
-
-    vec3 rd = getRayDirection(fragCoord, currentCameraDist);
+    vec3 rd = getRayDirection(uv, currentCameraDist);
 
     float t = intersectSphere(ro, rd, R_EARTH);
 
