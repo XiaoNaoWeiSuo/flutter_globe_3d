@@ -43,8 +43,8 @@ Key advantages:
 - Low Dart-side cost (no heavy UI work per-frame)
 - Smooth anti-aliased rendering and accurate texture mapping
 
-Known limitation:
-- Currently the widget reliably displays inside `ListView` and when used in layouts without tight constraints (the widget may have issues under some layout constraints). Contributions to improve layout compatibility are welcome.
+Compatibility:
+- As of version 1.1.4 the display/layout defects have been fixed — the widget now adapts to arbitrary dynamic layouts (ListView, Column, Row, Stack, etc.). If you find any remaining issues, please open an issue or submit a PR.
 
 ### Installation
 
@@ -52,7 +52,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_globe_3d: ^0.1.4
+  flutter_globe_3d: ^1.1.4
 ```
 
 Add assets (example):
@@ -138,16 +138,13 @@ class _ExampleAppState extends State<ExampleApp> {
 - 几乎不占用 Dart UI 线程
 - 抗锯齿、贴图映射准确
 
-已知缺陷：
-- 当前在某些布局约束下显示可能不稳定；插件在 `ListView` 和无复杂约束（“无布局组件”）下表现最稳定。欢迎贡献以改善对更多布局的兼容性。
-
 ### 安装与资源
 
 在 `pubspec.yaml` 中添加依赖与资源：
 
 ```yaml
 dependencies:
-  flutter_globe_3d: ^0.1.4
+  flutter_globe_3d: ^1.1.4
 
 flutter:
   assets:
@@ -167,11 +164,8 @@ flutter:
 
 ### 技术实现说明
 
-- 映射实现：使用 fragment shader 在 GPU 上对球体进行纹理采样与着色。
-- 性能说明：渲染逻辑由 GPU 完成，Dart 侧仅负责传递旋转、缩放等少量状态；因此 CPU 负担小，UI 线程空闲，渲染可保持高帧率。
-- 限制：目前在复杂约束布局下可能存在显示问题；在 `ListView` 与未受限容器中表现稳定。
-
----
+兼容性：
+- 自 v1.1.4 起已修复显示/布局问题；组件现在可以适配任意动态布局（如 `ListView`、`Column`、`Row`、`Stack` 等）。如仍发现问题欢迎提交 issue 或 PR。
 
 ## **Contributing / 贡献**
 

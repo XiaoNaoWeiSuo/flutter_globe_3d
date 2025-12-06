@@ -1,3 +1,8 @@
+## 1.1.4
+
+* Fix: layout/display defect — component now adapts to arbitrary dynamic layouts (ListView, Column, Row, Stack, etc.)
+* Update: example and README, add demo GIFs and screenshots
+
 ## 0.1.4
 
 * Change the example,add some display gif
