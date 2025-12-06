@@ -1,3 +1,7 @@
+## 0.0.4
+
+* Fix the problem that the frag file cannot be found,Remove the assets label
+
 ## 0.0.3
 
 * Fix the problem that the frag file cannot be found again

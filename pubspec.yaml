@@ -26,7 +26,5 @@ dev_dependencies:
 flutter:
 
   generate: true
-  assets:
-    - assets/shaders/globe.frag
   shaders:
     - assets/shaders/globe.frag
