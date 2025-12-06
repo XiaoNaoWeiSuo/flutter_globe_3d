@@ -22,7 +22,7 @@ class Flutter3DGlobe extends StatefulWidget {
     super.key,
     required this.controller,
     required this.texture,
-    this.shaderAssetPath = 'assets/shaders/globe.frag',
+    this.shaderAssetPath = 'packages/flutter_globe_3d/assets/shaders/globe.frag',
     this.markers = const [],
     this.connections = const [],
     this.radius = 150,
