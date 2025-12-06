@@ -35,16 +35,16 @@ class _MyGlobeAppState extends State<MyGlobeApp> {
               children: [
                 Flutter3DGlobe(
                   controller: _controller,
-                  texture: AssetImage('assets/mark.jpg'),
+                  texture: AssetImage('assets/example.jpg'),
                   radius: 150,
                 ),
                 Column(
                   children: [
                     Text(
-                      "Spark",
+                      "example",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 40,
+                        fontSize: 30,
                         fontWeight: FontWeight.w800,
                       ),
                     ),

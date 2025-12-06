@@ -1,96 +1,112 @@
-# Flutter Globe 3D
+## **Flutter Globe 3D** — English / 中文
 
-A high-performance, interactive 3D globe widget for Flutter applications. Render beautiful Earth globes with custom textures, markers, and connections using GPU-accelerated rendering via Fragment Shaders.
+> GPU-accelerated 3D globe widget for Flutter. 使用 Fragment Shader 在 GPU 上直接渲染球体纹理，性能强大，适合需要高帧率渲染的场景。
 
-## Features
+---
 
-✨ **3D Rendering**
-- GPU-accelerated sphere rendering using Fragment Shaders
-- Smooth anti-aliased surface with high-quality texture mapping
-- Real-time rotation and interactive controls
+**Demo GIFs & Screenshots**
 
-🎯 **Markers & Connections**
-- Place custom markers at any latitude/longitude
-- Add clickable markers with labels
-- Draw connections between markers with customizable colors and widths
-- Intelligent visibility culling (markers only show when facing the camera)
+- Live recording (spin):
 
-🎮 **Interactive Controls**
-- Smooth drag-to-rotate interaction
-- Pinch-to-zoom functionality (0.8x to 2.5x)
-- Momentum-based inertia when releasing drags
-- Automatic rotation when idle (configurable delay)
-- Auto-rotation pauses when user interacts with the globe
+  ![record_earth](https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/example/images/record_earth.gif)
 
-⚙️ **Customization**
-- Custom texture support (any ImageProvider)
-- Configurable globe size and background color
-- Adjustable rotation speed, zoom limits, and drag sensitivity
-- Optional auto-rotation feature
-- Scene-aware rendering with proper depth handling
+- Connection spark demo:
 
-## Getting Started
+  ![record_spark](https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/example/images/record_spark.gif)
+
+- Screenshot — Earth:
+
+  ![screenshot_earth](https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/example/images/screenshot_earth.png)
+
+- Screenshot — Spark overlay:
+
+  ![screenshot_spark](https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/example/images/screenshot_spark.png)
+
+---
+
+**Language / 语言**
+
+This README contains both English and Chinese sections. Read the section you prefer.
+
+本说明同时提供英文与中文内容，向下查找对应语言段落即可。
+
+---
+
+## **English**
+
+### Quick summary
+
+Flutter Globe 3D is a performant 3D globe widget implemented with Flutter Fragment Shaders. Rendering runs on the GPU (fragment shader), the Dart UI thread is not used for sphere shading; raster thread workload is small — the result is smooth animation and the ability to reach very high frame rates (e.g. 60–120 FPS on capable devices).
+
+Key advantages:
+- GPU shader-based mapping -> high performance
+- Low Dart-side cost (no heavy UI work per-frame)
+- Smooth anti-aliased rendering and accurate texture mapping
+
+Known limitation:
+- Currently the widget reliably displays inside `ListView` and when used in layouts without tight constraints (the widget may have issues under some layout constraints). Contributions to improve layout compatibility are welcome.
 
 ### Installation
 
-Add to your `pubspec.yaml`:
+Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_globe_3d: ^0.0.1
+  flutter_globe_3d: ^0.1.4
 ```
 
-Then run:
+Add assets (example):
 
-```bash
-flutter pub get
+```yaml
+flutter:
+  assets:
+    - assets/shaders/globe.frag
+    - assets/earth_texture.png
+    - example/images/record_earth.gif
+    - example/images/record_spark.gif
 ```
 
-### Requirements
+### Usage (updated example)
 
-- Flutter SDK >= 1.17.0
-- Dart SDK >= 3.9.2
-- Device support for Fragment Shaders (all modern devices)
-
-## Usage
-
-### Basic Example
-
-Create a simple 3D globe:
+This example matches the `example/main.dart` shipped with the package and demonstrates texture loading, markers and connections:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_globe_3d/flutter_globe_3d.dart';
 
-class MyGlobeApp extends StatefulWidget {
+class ExampleApp extends StatefulWidget {
   @override
-  State<MyGlobeApp> createState() => _MyGlobeAppState();
+  State<ExampleApp> createState() => _ExampleAppState();
 }
 
-class _MyGlobeAppState extends State<MyGlobeApp> {
-  late EarthController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = EarthController();
-  }
+class _ExampleAppState extends State<ExampleApp> {
+  final EarthController controller = EarthController();
 
   @override
   void dispose() {
-    _controller.dispose();
+    controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('3D Globe')),
+      appBar: AppBar(title: const Text('3D Globe')),
       body: Center(
         child: Flutter3DGlobe(
-          controller: _controller,
-          texture: AssetImage('assets/earth_texture.png'),
-          radius: 150,
+          controller: controller,
+          texture: AssetImage('assets/example.png'),
+          radius: 200,
+          markers: [
+            EarthMarker(
+              id: 'ny',
+              latitude: 40.7128,
+              longitude: -74.0060,
+              child: Container(width: 12, height: 12, decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+              label: 'New York',
+            ),
+          ],
+          connections: [],
         ),
       ),
     );
@@ -98,224 +114,75 @@ class _MyGlobeAppState extends State<MyGlobeApp> {
 }
 ```
 
-### Adding Markers
+### Technical notes
 
-Add interactive markers to specific locations:
+- Implementation: the globe surface is shaded using a fragment shader (`assets/shaders/globe.frag`). The shader computes spherical mapping and lighting on the GPU.
+- Performance: because the heavy work happens in the shader, the Dart UI thread remains mostly idle; only a small amount of state (rotation/zoom) is sent per frame. This design minimizes CPU overhead and lets modern devices reach very high frame rates.
+- Raster thread: shaders run in the GPU/raster pipeline — the plugin keeps raster thread usage small.
 
-```dart
-Flutter3DGlobe(
-  controller: _controller,
-  texture: AssetImage('assets/earth.png'),
-  radius: 150,
-  markers: [
-    EarthMarker(
-      id: 'ny',
-      latitude: 40.7128,  // degrees
-      longitude: -74.0060, // degrees
-      child: Container(
-        width: 16,
-        height: 16,
-        decoration: BoxDecoration(
-          color: Colors.red,
-          shape: BoxShape.circle,
-        ),
-      ),
-      label: 'New York',
-      onTap: () => print('Tapped New York'),
-    ),
-    EarthMarker(
-      id: 'tokyo',
-      latitude: 35.6762,
-      longitude: 139.6503,
-      child: Container(
-        width: 16,
-        height: 16,
-        decoration: BoxDecoration(
-          color: Colors.blue,
-          shape: BoxShape.circle,
-        ),
-      ),
-      label: 'Tokyo',
-      onTap: () => print('Tapped Tokyo'),
-    ),
-  ],
-)
+### When things go wrong
+
+- If you see the error `does not contain any shader data`, make sure the shader asset is declared in your app's `pubspec.yaml` under `flutter.assets` and `shaders` (if using Flutter's shader tooling).
+- Example `shaderAssetPath` default is `assets/shaders/globe.frag`. Do not prefix with `packages/` when the asset is included in the same package.
+
+---
+
+## **中文（简体）**
+
+### 简要说明
+
+本插件使用 Flutter 的 Fragment Shader 在 GPU 上直接绘制球体纹理映射。渲染在 GPU 侧完成，不占用 Dart UI 线程，只有很少的 raster 线程开销，因此在支持的设备上可以非常流畅（可达 60–120FPS）。推荐用于需要高帧率的球体演示场景。
+
+优点：
+- 基于着色器的映射，性能强大
+- 几乎不占用 Dart UI 线程
+- 抗锯齿、贴图映射准确
+
+已知缺陷：
+- 当前在某些布局约束下显示可能不稳定；插件在 `ListView` 和无复杂约束（“无布局组件”）下表现最稳定。欢迎贡献以改善对更多布局的兼容性。
+
+### 安装与资源
+
+在 `pubspec.yaml` 中添加依赖与资源：
+
+```yaml
+dependencies:
+  flutter_globe_3d: ^0.1.4
+
+flutter:
+  assets:
+    - assets/shaders/globe.frag
+    - assets/example.png
+    - example/images/record_earth.gif
+    - example/images/record_spark.gif
 ```
 
-### Drawing Connections
+注意：Shader 文件须在 `assets` 下声明并与 `shaderAssetPath` 对应。
 
-Connect markers with lines:
+### 使用示例
 
-```dart
-Flutter3DGlobe(
-  controller: _controller,
-  texture: AssetImage('assets/earth.png'),
-  radius: 150,
-  markers: [...],
-  connections: [
-    EarthConnection(
-      startId: 'ny',
-      endId: 'tokyo',
-      color: Colors.lightBlue,
-      width: 2.0,
-    ),
-    EarthConnection(
-      startId: 'ny',
-      endId: 'london',
-      color: Colors.amber,
-      width: 1.5,
-    ),
-  ],
-)
-```
+请参考 `example/main.dart`：示例演示了如何创建 `EarthController`，加载纹理，添加标记，并将 `Flutter3DGlobe` 嵌入页面。
 
-### Controlling the Globe
+（示例代码见上方 English 部分，已更新以匹配示例工程。）
 
-Manipulate the globe programmatically:
+### 技术实现说明
 
-```dart
-// Create controller with custom configuration
-final controller = EarthController(
-  config: EarthConfig(
-    maxZoom: 3.0,
-    minZoom: 0.5,
-    initialZoom: 1.0,
-    initialLat: 0.0,      // Starting latitude
-    initialLon: 0.0,      // Starting longitude
-    autoRotateSpeed: 0.0005,
-    dragSensitivity: 1.0,
-  ),
-  autoRotate: true,       // Start with auto-rotation
-);
+- 映射实现：使用 fragment shader 在 GPU 上对球体进行纹理采样与着色。
+- 性能说明：渲染逻辑由 GPU 完成，Dart 侧仅负责传递旋转、缩放等少量状态；因此 CPU 负担小，UI 线程空闲，渲染可保持高帧率。
+- 限制：目前在复杂约束布局下可能存在显示问题；在 `ListView` 与未受限容器中表现稳定。
 
-// Programmatically adjust zoom
-controller.zoom = 1.5;
+---
 
-// Disable auto-rotation
-controller.autoRotate = false;
-```
+## **Contributing / 贡献**
 
-## API Reference
+欢迎提出 issue 或 PR。如果你能帮助改善布局兼容性（例如在更多容器与约束下也能稳定渲染），非常感谢！
 
-### Flutter3DGlobe
+## **License**
 
-Main widget for rendering the 3D globe.
+MIT — 详见 `LICENSE`
 
-**Constructor Parameters:**
+---
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `controller` | `EarthController` | required | Controls rotation, zoom, and physics |
-| `texture` | `ImageProvider` | required | Texture image for the globe surface |
-| `shaderAssetPath` | `String` | `'assets/shaders/earth.frag'` | Path to custom fragment shader |
-| `markers` | `List<EarthMarker>` | `[]` | List of markers to display |
-| `connections` | `List<EarthConnection>` | `[]` | List of connections between markers |
-| `radius` | `double` | `150` | Globe radius in logical pixels |
-| `backgroundColor` | `Color` | `Colors.transparent` | Background color of globe container |
+**Contact / 支持**
 
-### EarthController
-
-Manages globe state, rotation, and physics.
-
-**Properties:**
-
-- `rotationX` (double): Current horizontal rotation (radians)
-- `rotationY` (double): Current vertical rotation (radians)  
-- `zoom` (double): Current zoom level
-- `autoRotate` (bool): Whether globe auto-rotates when idle
-
-**Methods:**
-
-- `startPhysics(TickerProvider vsync)`: Initialize physics simulation
-- `stopPhysics()`: Stop physics simulation
-- `onDragStart()`: Called when user starts dragging
-- `onDragUpdate(dx, dy, sensitivity)`: Called during drag motion
-- `onDragEnd(velocity, pixelRatio)`: Called when drag ends
-- `getRotationMatrix()`: Get current rotation Matrix4
-- `getMatrix33()`: Get 3x3 rotation matrix for shader
-
-### EarthMarker
-
-Represents a point of interest on the globe.
-
-**Constructor Parameters:**
-
-```dart
-const EarthMarker({
-  required String id,              // Unique identifier
-  required double latitude,         // -90 to 90 degrees
-  required double longitude,        // -180 to 180 degrees
-  required Widget child,            // Custom marker widget
-  String? label,                    // Optional label text
-  VoidCallback? onTap,             // Optional tap handler
-})
-```
-
-### EarthConnection
-
-Represents a connection between two markers.
-
-```dart
-const EarthConnection({
-  required String startId,          // Start marker ID
-  required String endId,            // End marker ID
-  Color color = Colors.lightBlueAccent, // Line color
-  double width = 1.5,               // Line width
-  bool isArrows = false,            // Reserved for future use
-})
-```
-
-### EarthConfig
-
-Configuration for globe behavior.
-
-```dart
-const EarthConfig({
-  double maxZoom = 2.5,             // Maximum zoom level
-  double minZoom = 0.8,             // Minimum zoom level
-  double initialZoom = 1.0,         // Starting zoom
-  double initialLat = 0.2,          // Starting latitude (radians)
-  double initialLon = -2.0,         // Starting longitude (radians)
-  double autoRotateSpeed = 0.0005,  // Rotation speed when idle
-  double dragSensitivity = 1.0,     // Drag interaction sensitivity
-})
-```
-
-## Performance Considerations
-
-- **Markers**: The widget uses viewport culling - markers facing away from camera are not rendered
-- **Connections**: Lines are drawn only when their midpoint faces the camera
-- **Textures**: Use appropriately sized textures (512x256 or 1024x512 recommended)
-- **Frame Rate**: Targets 60fps on modern devices with GPU acceleration
-
-## Troubleshooting
-
-**Globe appears blank:**
-- Ensure texture asset is properly configured in `pubspec.yaml`
-- Check that `shaderAssetPath` points to the correct shader file
-- Verify device supports Fragment Shaders
-
-**Markers not appearing:**
-- Check latitude/longitude values are in valid ranges
-- Ensure marker IDs in connections match the defined markers
-- Verify markers are facing the camera (viewport culling is active)
-
-**Performance issues:**
-- Reduce number of markers and connections
-- Use lower resolution textures
-- Disable auto-rotation if not needed
-- Check device GPU capabilities
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit pull requests or open issues on the [GitHub repository](https://github.com/XiaoNaoWeiSuo/flutter_globe_3d).
-
-## Support
-
-For issues, questions, or suggestions, please visit:
-- [GitHub Issues](https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/issues)
-- [GitHub Repository](https://github.com/XiaoNaoWeiSuo/flutter_globe_3d)
+- Issues: https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/issues

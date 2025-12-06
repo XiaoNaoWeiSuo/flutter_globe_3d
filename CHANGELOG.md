@@ -1,3 +1,7 @@
+## 0.1.4
+
+* Change the example,add some display gif
+
 ## 0.0.4
 
 * Fix the problem that the frag file cannot be found,Remove the assets label
