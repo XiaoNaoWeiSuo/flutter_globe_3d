@@ -1,6 +1,6 @@
 name: flutter_globe_3d
 description: "A 3D Globe."
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/XiaoNaoWeiSuo/flutter_globe_3d
 repository: https://github.com/XiaoNaoWeiSuo/flutter_globe_3d
 
@@ -27,7 +27,7 @@ flutter:
 
   generate: true
   assets:
-    - assets/shaders/earth.frag
+    - assets/shaders/globe.frag
   shaders:
-    - assets/shaders/earth.frag
+    - assets/shaders/globe.frag
   
