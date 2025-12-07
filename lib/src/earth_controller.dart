@@ -4,15 +4,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 
+/// Configuration for `EarthController`.
+///
+/// Use `EarthConfig` to customize zoom limits, initial view angles,
+/// auto-rotation speed and drag sensitivity. This is an immutable value
+/// object and is safe to share between controllers.
 class EarthConfig {
+  /// Maximum allowed zoom factor. Defaults to `2.5`.
   final double maxZoom;
+
+  /// Minimum allowed zoom factor. Defaults to `0.8`.
   final double minZoom;
+
+  /// Initial zoom factor when the controller is created. Defaults to `1.0`.
   final double initialZoom;
+
+  /// Initial pitch (vertical rotation) in radians. Defaults to `0.2`.
   final double initialLat;
+
+  /// Initial yaw (horizontal rotation) in radians. Defaults to `-2.0`.
   final double initialLon;
+
+  /// Auto-rotation speed applied per physics tick when `autoRotate` is true.
+  /// Defaults to `0.0005`.
   final double autoRotateSpeed;
+
+  /// Drag sensitivity multiplier. Increase to make drag gestures move the
+  /// globe faster. Defaults to `1.0`.
   final double dragSensitivity; // 拖拽灵敏度调整
 
+  /// Creates a const [EarthConfig].
   const EarthConfig({
     this.maxZoom = 2.5,
     this.minZoom = 0.8,
@@ -24,7 +45,12 @@ class EarthConfig {
   });
 }
 
+/// Controls globe rotation, zoom and physics (inertia / auto-rotation).
+///
+/// Create an [EarthController] and pass it to [Flutter3DGlobe] to control
+/// the globe programmatically or receive updates from user interactions.
 class EarthController extends ChangeNotifier {
+  /// Configuration values that control bounds and sensitivity.
   final EarthConfig config;
 
   double _rotationX;

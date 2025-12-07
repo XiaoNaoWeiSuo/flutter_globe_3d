@@ -9,6 +9,12 @@ import 'models/earth_connection.dart';
 import 'models/earth_maker.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 
+/// A GPU-accelerated 3D globe widget.
+///
+/// `Flutter3DGlobe` renders an interactive Earth using a fragment shader for
+/// high-performance GPU rendering. Provide an [EarthController] to control
+/// rotation and zoom, an [ImageProvider] texture for the globe surface, and
+/// optional markers / connections to annotate the globe.
 class Flutter3DGlobe extends StatefulWidget {
   final EarthController controller;
   final ImageProvider texture;
@@ -22,7 +28,7 @@ class Flutter3DGlobe extends StatefulWidget {
     super.key,
     required this.controller,
     required this.texture,
-    this.shaderAssetPath = 'packages/flutter_globe_3d/assets/shaders/globe.frag',
+    this.shaderAssetPath = 'assets/shaders/globe.frag',
     this.markers = const [],
     this.connections = const [],
     this.radius = 150,
@@ -48,7 +54,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
 
   // 添加用于区分缩放和拖拽的状态
   bool _isScaling = false;
-  Offset _lastFocalPoint = Offset.zero;
 
   @override
   void initState() {
@@ -194,7 +199,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
               _isAutoRotating = false;
 
               _baseScale = widget.controller.zoom;
-              _lastFocalPoint = d.focalPoint;
               _isScaling = false;
               widget.controller.onDragStart();
             },
@@ -216,7 +220,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
                 );
               }
               
-              _lastFocalPoint = d.focalPoint;
             },
             onScaleEnd: (d) {
               widget.controller.onDragEnd(d.velocity.pixelsPerSecond, dpr);
