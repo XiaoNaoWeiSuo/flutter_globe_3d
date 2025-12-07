@@ -1,3 +1,11 @@
+
+## 1.2.0
+
+* Fix: Keep auto-rotation consistent after user interaction (restore controller.autoRotate)
+* Fix: Remove image stream listener on texture load error to avoid leaks
+* Fix: Properly stop/start physics when `EarthController` instance is swapped
+* Chore: bump package version to 1.2.0
+
 ## 1.1.5
 
 * Fix: Stuttering caused by scaling

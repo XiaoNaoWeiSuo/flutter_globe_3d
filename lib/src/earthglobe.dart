@@ -143,6 +143,10 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       },
       onError: (dynamic exception, StackTrace? stackTrace) {
         debugPrint("Texture Load Error: $exception");
+        // 移除监听器，避免泄露
+        try {
+          stream.removeListener(listener);
+        } catch (_) {}
         if (!completer.isCompleted) {
           completer.completeError(exception);
         }
@@ -157,8 +161,16 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
   void didUpdateWidget(Flutter3DGlobe oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
+      // 替换 controller：移除旧的 listener 并停止其物理仿真；为新的 controller 添加 listener 并启动仿真
       oldWidget.controller.removeListener(_update);
+      try {
+        oldWidget.controller.stopPhysics();
+      } catch (_) {}
+
       widget.controller.addListener(_update);
+      try {
+        widget.controller.startPhysics(this);
+      } catch (_) {}
     }
     if (widget.texture != oldWidget.texture) {
       _hasLoadingStarted = false;
@@ -225,11 +237,16 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
               widget.controller.onDragEnd(d.velocity.pixelsPerSecond, dpr);
               _isScaling = false;
 
-              _autoRotateTimer = Timer(Duration(seconds: _idleSeconds), () {
-                if (mounted) {
-                  _isAutoRotating = true;
-                }
-              });
+                      _autoRotateTimer = Timer(Duration(seconds: _idleSeconds), () {
+                        if (mounted) {
+                          // 恢复本地自动旋转标志
+                          _isAutoRotating = true;
+                          // 同步恢复 controller 的 autoRotate，保证物理模拟行为一致
+                          try {
+                            widget.controller.autoRotate = true;
+                          } catch (_) {}
+                        }
+                      });
             },
             child: Stack(
               clipBehavior: Clip.none,
