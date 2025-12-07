@@ -191,8 +191,7 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
 
-    // 球与外边框比例 1:1.5：外框 * 1.5，球大小保持 radius * 2
-    final containerSize = widget.radius * 3.0;  // 外框
+    final containerSize = widget.radius * 1.5;  // 外框
     final globeSize = widget.radius * 2.0;      // 球的绘制大小
 
     return Container(
