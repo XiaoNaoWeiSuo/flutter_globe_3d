@@ -114,6 +114,53 @@ class _ExampleAppState extends State<ExampleApp> {
 }
 ```
 
+### Configuration options & controller tips
+
+This section shows how to use the `EarthConfig` flags and the
+`EarthController.autoRotate` programmatic toggle.
+
+- `polarLock`: when `true`, vertical rotation (pitch) is disabled and the
+  globe only rotates horizontally.
+- `zoomLock`: when `true`, zoom changes from gestures or code are ignored.
+
+Example (English):
+
+```dart
+final controller = EarthController(
+  config: const EarthConfig(polarLock: true, zoomLock: false),
+  autoRotate: true,
+);
+
+// Temporarily pause auto-rotate (for example during a custom animation)
+controller.autoRotate = false;
+
+// Resume auto-rotate
+controller.autoRotate = true;
+```
+
+示例（中文）：
+
+```dart
+// 创建控制器并锁定极轴（禁止上下倾斜），允许缩放
+final controller = EarthController(
+  config: const EarthConfig(polarLock: true, zoomLock: false),
+);
+
+// 在自定义交互期间暂停自动旋转
+controller.autoRotate = false;
+
+// 交互结束后恢复自动旋转
+controller.autoRotate = true;
+```
+
+Notes:
+- The widget defers to `EarthController.autoRotate` as the single source of
+  truth for automatic rotation. If you previously used a local widget flag for
+  auto-rotation, migrate that logic to the controller.
+- `polarLock` and `zoomLock` are immutable configuration values on
+  `EarthConfig`. Create the controller with the desired `EarthConfig` to
+  enable the locks.
+
 ### Technical notes
 
 - Implementation: the globe surface is shaded using a fragment shader (`assets/shaders/globe.frag`). The shader computes spherical mapping and lighting on the GPU.
