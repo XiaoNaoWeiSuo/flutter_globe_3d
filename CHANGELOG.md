@@ -1,10 +1,73 @@
 
-## 1.2.0
+## Unreleased / 1.2.0 (unreleased)
 
-* Fix: Keep auto-rotation consistent after user interaction (restore controller.autoRotate)
-* Fix: Remove image stream listener on texture load error to avoid leaks
-* Fix: Properly stop/start physics when `EarthController` instance is swapped
-* Chore: bump package version to 1.2.0
+### Highlights
+
+- Fix: Unify auto-rotation control so `EarthController.autoRotate` is the single
+	source of truth. User interactions (drag/scale) temporarily disable auto-rotate
+	and the controller restores it when idle.
+- Fix: Remove `ImageStream` listener on texture load error as well as on success
+	to avoid leaking listeners when image decoding fails.
+- Fix: Properly stop and start the internal physics ticker when an
+	`EarthController` instance is swapped on the widget. This prevents duplicate
+	tickers and unexpected behavior when the controller is replaced.
+- Feature: Add two configuration flags in `EarthConfig`:
+	- `polarLock` — when true, vertical rotation (pitch) is disabled (no polar tilt).
+	- `zoomLock` — when true, programmatic or gesture zoom changes are ignored.
+
+### Details & Migration Notes
+
+- Auto-rotate
+	- Previous versions sometimes split auto-rotate state between the widget and
+		the controller which could lead to inconsistent behavior after interactions.
+		In 1.2.0 the widget defers to `EarthController.autoRotate` only. If you
+		previously relied on widget-local flags, migrate to the controller API:
+
+```dart
+final controller = EarthController(autoRotate: true);
+
+// Pause auto-rotate during custom interaction
+controller.autoRotate = false;
+
+// Resume
+controller.autoRotate = true;
+```
+
+- Polar / Zoom locks
+	- To lock vertical rotation (prevent the globe from tilting), set
+		`EarthConfig(polarLock: true)`. To disable zooming set
+		`EarthConfig(zoomLock: true)`. Example:
+
+```dart
+final controller = EarthController(
+	config: const EarthConfig(polarLock: true, zoomLock: false),
+);
+```
+
+- Image/load safety
+	- The texture loader now removes image stream listeners on both success and
+		error paths. No change is required by consumers, but this prevents a class
+		of listener-leak bugs that could surface when an image fails to decode.
+
+- Controller lifecycle
+	- When swapping `EarthController` instances on a `Flutter3DGlobe` widget, the
+		old controller's physics ticker is stopped and the new controller's ticker
+		is started. This prevents multiple active tickers if the controller is
+		replaced at runtime.
+
+### Notes
+
+- This release is currently unreleased; the public package version and
+	publish steps will be performed when you are ready. The codebase has been
+	updated to target `1.2.0` locally, but you can continue to iterate on
+	behavior before publishing.
+
+### Changelog (summary)
+
+- Fix: Keep auto-rotation consistent after user interaction (restore controller.autoRotate)
+- Fix: Remove image stream listener on texture load error to avoid leaks
+- Fix: Properly stop/start physics when `EarthController` instance is swapped
+
 
 ## 1.1.5
 
