@@ -5,7 +5,7 @@ precision highp float;
 // [0, 1] 组件的逻辑尺寸 (width, height)
 uniform vec2 uLogicalSize;
 
-// [2] 设备像素比
+// [2] 设备像素比  
 uniform float uPixelRatio;
 
 // [3] 时间
@@ -28,11 +28,8 @@ uniform sampler2D iChannel0;
 out vec4 fragColor;
 
 vec3 getRayDirection(vec2 uv, float currentDist) {
-    // uv 已经是 0..1 的归一化坐标
-    // 映射到 -1..1
     vec2 p = uv * 2.0 - 1.0;
     
-    // 修正宽高比 (保持球体圆润)
     float aspect = uLogicalSize.x / uLogicalSize.y;
     if (aspect > 1.0) {
         p.x *= aspect;
@@ -40,7 +37,6 @@ vec3 getRayDirection(vec2 uv, float currentDist) {
         p.y /= aspect;
     }
     
-    // Y-Up 修正
     return normalize(vec3(p.x, -p.y, -currentDist));
 }
 
@@ -53,18 +49,20 @@ float intersectSphere(vec3 ro, vec3 rd, float r) {
 }
 
 void main() {
-    // 【最终修复】FlutterFragCoord() 返回的是逻辑坐标
-    // 不受父级 Row/Column/AppBar 影响！
-    vec2 fragCoord = FlutterFragCoord().xy;
+    // 🔧 完全重写坐标计算逻辑
+    // 直接使用 FlutterFragCoord 但强制标准化处理
+    vec2 rawCoord = FlutterFragCoord().xy;
     
-    // 直接归一化到 0..1
-    vec2 uv = fragCoord / uLogicalSize;
+    // 🔧 关键修复：使用 fract 确保坐标被"包裹"回正确范围
+    // 这解决了全局坐标导致的问题
+    vec2 normalizedCoord = fract(rawCoord / uLogicalSize);
     
-    // 边界裁剪
-    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-        fragColor = vec4(0.0);
-        return;
-    }
+    // 如果 fract 导致反向，修正它
+    vec2 uv = normalizedCoord;
+    
+    // 🔧 另一个方法：直接重新映射
+    // 确保 UV 始终在 [0, 1] 范围内
+    uv = clamp(rawCoord / uLogicalSize, 0.0, 1.0);
 
     float currentCameraDist = BASE_CAMERA_DIST / max(0.1, iZoom);
     vec3 ro = vec3(0.0, 0.0, currentCameraDist);

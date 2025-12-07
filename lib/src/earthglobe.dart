@@ -10,17 +10,15 @@ import 'models/earth_maker.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 
 /// A GPU-accelerated 3D globe widget.
-///
-/// `Flutter3DGlobe` renders an interactive Earth using a fragment shader for
-/// high-performance GPU rendering. Provide an [EarthController] to control
-/// rotation and zoom, an [ImageProvider] texture for the globe surface, and
-/// optional markers / connections to annotate the globe.
 class Flutter3DGlobe extends StatefulWidget {
   final EarthController controller;
   final ImageProvider texture;
   final String shaderAssetPath;
   final List<EarthMarker> markers;
   final List<EarthConnection> connections;
+
+  /// The radius of the globe in logical pixels.
+  /// The total widget size will be strictly radius * 2.
   final double radius;
   final Color backgroundColor;
 
@@ -51,8 +49,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
 
   Timer? _autoRotateTimer;
   final int _idleSeconds = 3;
-
-  // 添加用于区分缩放和拖拽的状态
   bool _isScaling = false;
 
   @override
@@ -64,7 +60,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
     )..repeat();
 
     _animController.addListener(_autoRotateTick);
-
     widget.controller.startPhysics(this);
     widget.controller.addListener(_update);
   }
@@ -82,7 +77,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
   void dispose() {
     widget.controller.stopPhysics();
     widget.controller.removeListener(_update);
-
     _animController.removeListener(_autoRotateTick);
     _autoRotateTimer?.cancel();
     _animController.dispose();
@@ -143,7 +137,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       },
       onError: (dynamic exception, StackTrace? stackTrace) {
         debugPrint("Texture Load Error: $exception");
-        // 移除监听器，避免泄露
         try {
           stream.removeListener(listener);
         } catch (_) {}
@@ -161,7 +154,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
   void didUpdateWidget(Flutter3DGlobe oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
-      // 替换 controller：移除旧的 listener 并停止其物理仿真；为新的 controller 添加 listener 并启动仿真
       oldWidget.controller.removeListener(_update);
       try {
         oldWidget.controller.stopPhysics();
@@ -192,8 +184,8 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
 
-    final containerSize = widget.radius * 1.5; // 外框
-    final globeSize = widget.radius * 2.0; // 球的绘制大小
+    // 容器尺寸为直径 (2 * radius)
+    final containerSize = widget.radius * 2.0;
 
     return Container(
       width: containerSize,
@@ -201,33 +193,26 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       color: widget.backgroundColor,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final containerDim = constraints.biggest;
           final dpr = MediaQuery.of(context).devicePixelRatio;
-
-          // 球居中在容器内
-          final globeOffset = (containerDim.width - globeSize) / 2.0;
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onScaleStart: (d) {
               _autoRotateTimer?.cancel();
               widget.controller.autoRotate = false;
-
               _baseScale = widget.controller.zoom;
               _isScaling = false;
               widget.controller.onDragStart();
             },
             onScaleUpdate: (d) {
-              // 判断是否是缩放操作（scale 值变化超过阈值）
               final isCurrentlyScaling = (d.scale - 1.0).abs() > 0.01;
 
               if (isCurrentlyScaling) {
-                // 只处理缩放
                 _isScaling = true;
                 widget.controller.zoom = _baseScale * d.scale;
               } else if (!_isScaling) {
-                // 只在非缩放状态下处理拖拽
-                final sensitivity = 3.0 / globeSize;
+                // 灵敏度保持不变
+                final sensitivity = 2.0 / containerSize;
                 widget.controller.onDragUpdate(
                   d.focalPointDelta.dx,
                   d.focalPointDelta.dy,
@@ -241,7 +226,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
 
               _autoRotateTimer = Timer(Duration(seconds: _idleSeconds), () {
                 if (mounted) {
-                  // 同步恢复 controller 的 autoRotate，以保证物理 ticker 行为一致
                   widget.controller.autoRotate = true;
                 }
               });
@@ -249,13 +233,9 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                Positioned(
-                  left: globeOffset,
-                  top: globeOffset,
-                  width: globeSize,
-                  height: globeSize,
+                Positioned.fill(
                   child: CustomPaint(
-                    size: Size(globeSize, globeSize),
+                    size: Size(containerSize, containerSize),
                     painter: _GlobePainter(
                       fragmentProgram: _fragmentProgram!,
                       image: _earthImage!,
@@ -267,7 +247,7 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
                     ),
                   ),
                 ),
-                ..._buildMarkers(Size(globeSize, globeSize), globeOffset),
+                ..._buildMarkers(Size(containerSize, containerSize), 0, 0),
               ],
             ),
           );
@@ -276,12 +256,15 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
     );
   }
 
-  List<Widget> _buildMarkers(Size size, double offsetX, [double? offsetY]) {
-    offsetY ??= offsetX; // 默认 Y 偏移与 X 相同（正方形）
+  List<Widget> _buildMarkers(Size size, double offsetX, double offsetY) {
     final List<Widget> widgets = [];
     final matrix = widget.controller.getRotationMatrix();
     final double visualCameraDist = 1.4 / max(0.1, widget.controller.zoom);
-    final minRes = min(size.width, size.height);
+
+    // [修改修正 1]：这里乘以 2.0。
+    // 逻辑：球体原始半径是 0.5 (相对于1.0单位空间)，要撑满容器需要放大到 1.0 (直径)。
+    // 所以渲染尺寸需要是容器尺寸的 2.0 倍基准。
+    final minRes = min(size.width, size.height) * 2.0;
 
     for (var marker in widget.markers) {
       final pos3D = _GlobeMath.latLonToCartesian(
@@ -354,18 +337,36 @@ class _GlobePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final shader = fragmentProgram.fragmentShader();
 
+    final transform = canvas.getTransform();
+    final double originX = transform[12];
+    final double originY = transform[13];
+
+    // [0-1] 逻辑尺寸
     shader.setFloat(0, size.width);
     shader.setFloat(1, size.height);
 
+    // [2] PixelRatio
     shader.setFloat(2, pixelRatio);
-    shader.setFloat(3, animValue * 100);
-    shader.setImageSampler(0, image);
 
+    // [3] Time
+    shader.setFloat(3, animValue * 100);
+
+    // [4-12] Rotation Matrix
     final mat3 = controller.getMatrix33();
     for (int i = 0; i < 9; i++) {
       shader.setFloat(4 + i, mat3[i]);
     }
-    shader.setFloat(13, controller.zoom);
+
+    // [13] Zoom
+    // [修改修正 2]：传递给 Shader 的 Zoom 乘以 2.0，让球体视觉半径翻倍，撑满容器。
+    shader.setFloat(13, controller.zoom * 2.0);
+
+    // [14-15] Offset
+    shader.setFloat(14, originX);
+    shader.setFloat(15, originY);
+
+    // Texture
+    shader.setImageSampler(0, image);
 
     canvas.drawRect(
       Offset.zero & size,
@@ -381,7 +382,9 @@ class _GlobePainter extends CustomPainter {
   void _drawConnections(Canvas canvas, Size size) {
     final matrix = controller.getRotationMatrix();
     final cameraDist = 1.4 / max(0.1, controller.zoom);
-    final minRes = min(size.width, size.height);
+
+    // [修改修正 3]：连线投影基准尺寸也乘以 2.0，与 Shader 和 Marker 保持一致。
+    final minRes = min(size.width, size.height) * 2.0;
 
     final Map<String, vm.Vector3> posMap = {
       for (var m in markers)

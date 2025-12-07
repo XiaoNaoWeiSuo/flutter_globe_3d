@@ -1,3 +1,6 @@
+## 1.2.2
+
+* Fix: Globe be move to bottom one radius in Listview,Fixed.
 
 ## 1.2.1
 
