@@ -267,7 +267,7 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
                     ),
                   ),
                 ),
-                ..._buildMarkers(Size(globeSize, globeSize)),
+                ..._buildMarkers(Size(globeSize, globeSize), globeOffset),
               ],
             ),
           );
@@ -276,7 +276,8 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
     );
   }
 
-  List<Widget> _buildMarkers(Size size) {
+  List<Widget> _buildMarkers(Size size, double offsetX, [double? offsetY]) {
+    offsetY ??= offsetX;  // 默认 Y 偏移与 X 相同（正方形）
     final List<Widget> widgets = [];
     final matrix = widget.controller.getRotationMatrix();
     final double visualCameraDist = 1.4 / max(0.1, widget.controller.zoom);
@@ -300,8 +301,8 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
 
       widgets.add(
         Positioned(
-          left: screenPos.dx - 24,
-          top: screenPos.dy - 24,
+          left: screenPos.dx - 24 + offsetX,
+          top: screenPos.dy - 24 + offsetY,
           child: GestureDetector(
             onTap: marker.onTap,
             child: Transform.scale(
