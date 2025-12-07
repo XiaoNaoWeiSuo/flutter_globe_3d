@@ -8,7 +8,6 @@ library;
 /// `Flutter3DGlobe`, `EarthController`, `EarthConfig`, `EarthMarker`, and
 /// related types used to render an interactive GPU-driven 3D globe.
 
-
 // Core re-exports
 export 'src/earthglobe.dart' show Flutter3DGlobe;
 export 'src/earth_controller.dart' show EarthController, EarthConfig;

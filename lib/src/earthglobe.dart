@@ -28,7 +28,8 @@ class Flutter3DGlobe extends StatefulWidget {
     super.key,
     required this.controller,
     required this.texture,
-    this.shaderAssetPath = 'packages/flutter_globe_3d/assets/shaders/globe.frag',
+    this.shaderAssetPath =
+        'packages/flutter_globe_3d/assets/shaders/globe.frag',
     this.markers = const [],
     this.connections = const [],
     this.radius = 150,
@@ -191,8 +192,8 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
 
-    final containerSize = widget.radius * 1.5;  // 外框
-    final globeSize = widget.radius * 2.0;      // 球的绘制大小
+    final containerSize = widget.radius * 1.5; // 外框
+    final globeSize = widget.radius * 2.0; // 球的绘制大小
 
     return Container(
       width: containerSize,
@@ -202,7 +203,7 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
         builder: (context, constraints) {
           final containerDim = constraints.biggest;
           final dpr = MediaQuery.of(context).devicePixelRatio;
-          
+
           // 球居中在容器内
           final globeOffset = (containerDim.width - globeSize) / 2.0;
 
@@ -219,7 +220,7 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
             onScaleUpdate: (d) {
               // 判断是否是缩放操作（scale 值变化超过阈值）
               final isCurrentlyScaling = (d.scale - 1.0).abs() > 0.01;
-              
+
               if (isCurrentlyScaling) {
                 // 只处理缩放
                 _isScaling = true;
@@ -233,18 +234,17 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
                   sensitivity,
                 );
               }
-              
             },
             onScaleEnd: (d) {
               widget.controller.onDragEnd(d.velocity.pixelsPerSecond, dpr);
               _isScaling = false;
 
-                      _autoRotateTimer = Timer(Duration(seconds: _idleSeconds), () {
-                        if (mounted) {
-                          // 同步恢复 controller 的 autoRotate，以保证物理 ticker 行为一致
-                          widget.controller.autoRotate = true;
-                        }
-                      });
+              _autoRotateTimer = Timer(Duration(seconds: _idleSeconds), () {
+                if (mounted) {
+                  // 同步恢复 controller 的 autoRotate，以保证物理 ticker 行为一致
+                  widget.controller.autoRotate = true;
+                }
+              });
             },
             child: Stack(
               clipBehavior: Clip.none,
@@ -277,7 +277,7 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
   }
 
   List<Widget> _buildMarkers(Size size, double offsetX, [double? offsetY]) {
-    offsetY ??= offsetX;  // 默认 Y 偏移与 X 相同（正方形）
+    offsetY ??= offsetX; // 默认 Y 偏移与 X 相同（正方形）
     final List<Widget> widgets = [];
     final matrix = widget.controller.getRotationMatrix();
     final double visualCameraDist = 1.4 / max(0.1, widget.controller.zoom);
