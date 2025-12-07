@@ -33,6 +33,13 @@ class EarthConfig {
   /// globe faster. Defaults to `1.0`.
   final double dragSensitivity; // 拖拽灵敏度调整
 
+  /// When true, lock the polar axis so vertical rotation is disabled.
+  /// Only horizontal (left/right) dragging will rotate the globe.
+  final bool polarLock;
+
+  /// When true, lock zoom so calls that set `zoom` have no effect.
+  final bool zoomLock;
+
   /// Creates a const [EarthConfig].
   const EarthConfig({
     this.maxZoom = 2.5,
@@ -42,6 +49,8 @@ class EarthConfig {
     this.initialLon = -2.0,
     this.autoRotateSpeed = 0.0005,
     this.dragSensitivity = 1.0,
+    this.polarLock = false,
+    this.zoomLock = false,
   });
 }
 
@@ -53,28 +62,31 @@ class EarthController extends ChangeNotifier {
   /// Configuration values that control bounds and sensitivity.
   final EarthConfig config;
 
+  /// Whether the globe auto-rotates when idle. Toggle this to enable/disable
+  /// automatic rotation driven by the physics ticker.
+  bool autoRotate;
+
   double _rotationX;
   double _rotationY;
   double _zoom;
   double _velocityX = 0.0;
   double _velocityY = 0.0;
   bool _isDragging = false;
-  bool autoRotate;
 
   Ticker? _physicsTicker;
   final double _friction = 0.92;
 
-  EarthController({this.config = const EarthConfig(), bool autoRotate = true})
+  EarthController({this.config = const EarthConfig(), this.autoRotate = true})
     : _rotationY = config.initialLat,
       _rotationX = config.initialLon,
-      _zoom = config.initialZoom,
-      this.autoRotate = autoRotate;
+      _zoom = config.initialZoom;
 
   double get rotationX => _rotationX;
   double get rotationY => _rotationY;
   double get zoom => _zoom;
 
   set zoom(double val) {
+    if (config.zoomLock) return;
     _zoom = max(config.minZoom, min(config.maxZoom, val));
     notifyListeners();
   }
@@ -100,8 +112,10 @@ class EarthController extends ChangeNotifier {
   void onDragUpdate(double dx, double dy, double sensitivity) {
     final finalSense = sensitivity * config.dragSensitivity;
     _rotationX += dx * finalSense;
-    _rotationY += dy * finalSense;
-    _rotationY = max(-1.4, min(1.4, _rotationY));
+    if (!config.polarLock) {
+      _rotationY += dy * finalSense;
+      _rotationY = max(-1.4, min(1.4, _rotationY));
+    }
     notifyListeners();
   }
 

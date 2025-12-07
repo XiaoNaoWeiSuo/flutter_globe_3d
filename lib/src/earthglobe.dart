@@ -28,7 +28,7 @@ class Flutter3DGlobe extends StatefulWidget {
     super.key,
     required this.controller,
     required this.texture,
-    this.shaderAssetPath = 'assets/shaders/globe.frag',
+    this.shaderAssetPath = 'packages/flutter_globe_3d/assets/shaders/globe.frag',
     this.markers = const [],
     this.connections = const [],
     this.radius = 150,
@@ -49,7 +49,6 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
   bool _hasLoadingStarted = false;
 
   Timer? _autoRotateTimer;
-  bool _isAutoRotating = true;
   final int _idleSeconds = 3;
 
   // 添加用于区分缩放和拖拽的状态
@@ -102,7 +101,7 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
   }
 
   void _autoRotateTick() {
-    if (_isAutoRotating) {
+    if (widget.controller.autoRotate) {
       final double targetSpeedRad = widget.controller.config.autoRotateSpeed;
       final double dx = targetSpeedRad * widget.radius;
       widget.controller.onDragUpdate(dx, 0, 1.0 / widget.radius);
@@ -192,8 +191,9 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
 
-    // 修改容器尺寸为 1.5 倍半径
-    final containerSize = widget.radius * 1.6;
+    // 球与外边框比例 1:1.5：外框 * 1.5，球大小保持 radius * 2
+    final containerSize = widget.radius * 3.0;  // 外框
+    final globeSize = widget.radius * 2.0;      // 球的绘制大小
 
     return Container(
       width: containerSize,
@@ -201,14 +201,17 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
       color: widget.backgroundColor,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final size = constraints.biggest;
+          final containerDim = constraints.biggest;
           final dpr = MediaQuery.of(context).devicePixelRatio;
+          
+          // 球居中在容器内
+          final globeOffset = (containerDim.width - globeSize) / 2.0;
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onScaleStart: (d) {
               _autoRotateTimer?.cancel();
-              _isAutoRotating = false;
+              widget.controller.autoRotate = false;
 
               _baseScale = widget.controller.zoom;
               _isScaling = false;
@@ -224,7 +227,7 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
                 widget.controller.zoom = _baseScale * d.scale;
               } else if (!_isScaling) {
                 // 只在非缩放状态下处理拖拽
-                final sensitivity = 3.0 / size.width;
+                final sensitivity = 3.0 / globeSize;
                 widget.controller.onDragUpdate(
                   d.focalPointDelta.dx,
                   d.focalPointDelta.dy,
@@ -239,32 +242,33 @@ class _Flutter3DGlobeState extends State<Flutter3DGlobe>
 
                       _autoRotateTimer = Timer(Duration(seconds: _idleSeconds), () {
                         if (mounted) {
-                          // 恢复本地自动旋转标志
-                          _isAutoRotating = true;
-                          // 同步恢复 controller 的 autoRotate，保证物理模拟行为一致
-                          try {
-                            widget.controller.autoRotate = true;
-                          } catch (_) {}
+                          // 同步恢复 controller 的 autoRotate，以保证物理 ticker 行为一致
+                          widget.controller.autoRotate = true;
                         }
                       });
             },
             child: Stack(
               clipBehavior: Clip.none,
-              fit: StackFit.expand,
               children: [
-                CustomPaint(
-                  size: size,
-                  painter: _GlobePainter(
-                    fragmentProgram: _fragmentProgram!,
-                    image: _earthImage!,
-                    controller: widget.controller,
-                    markers: widget.markers,
-                    connections: widget.connections,
-                    animValue: _animController.value,
-                    pixelRatio: dpr,
+                Positioned(
+                  left: globeOffset,
+                  top: globeOffset,
+                  width: globeSize,
+                  height: globeSize,
+                  child: CustomPaint(
+                    size: Size(globeSize, globeSize),
+                    painter: _GlobePainter(
+                      fragmentProgram: _fragmentProgram!,
+                      image: _earthImage!,
+                      controller: widget.controller,
+                      markers: widget.markers,
+                      connections: widget.connections,
+                      animValue: _animController.value,
+                      pixelRatio: dpr,
+                    ),
                   ),
                 ),
-                ..._buildMarkers(size),
+                ..._buildMarkers(Size(globeSize, globeSize)),
               ],
             ),
           );
