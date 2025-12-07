@@ -1,5 +1,10 @@
 
-## Unreleased / 1.2.0 (unreleased)
+## 1.2.1
+
+* Fix: Adjust container and globe size ratio to 1:1.5 (sphere:frame) for better visual balance
+* Fix: Align markers and connection lines to globe surface with correct positioning offset
+
+## 1.2.0
 
 ### Highlights
 
