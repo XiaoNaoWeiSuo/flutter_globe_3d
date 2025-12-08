@@ -4,8 +4,7 @@ Flutter Globe 3D — English / 中文
 
 🚀 专为 Flutter 设计的高性能 3D 地球组件。基于 GPU Fragment Shader 渲染，提供流畅的交互、标记和连线功能。
 
-Demo GIFs & Screenshots / 演示动图与截图
-Live recording (Spin) / 旋转演示:
+Demo GIFs & Screenshots / 演示截图
 
 <table>
 <tr>
@@ -24,7 +23,7 @@ Live recording (Spin) / 旋转演示:
 <sub>Jupiter texture / 木星纹理</sub>
 </td>
 <td align="center">
-<img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/earth.gif" width="300px;" alt="Earth"/><br />
+<img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/earth.png" width="300px;" alt="Earth"/><br />
 <sub>Earth texture / 地球纹理</sub>
 </td>
 </tr>
@@ -139,6 +138,8 @@ controller.connect(
 
 
 5. 控制器 API 参考
+
+![vedio_earth](https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/earth.gif)
 
 EarthController 是控制地球行为的核心，您可以通过修改其属性实现自定义交互和动画。
 
