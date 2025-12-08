@@ -24,7 +24,7 @@ Live recording (Spin) / 旋转演示:
 <sub>Jupiter texture / 木星纹理</sub>
 </td>
 <td align="center">
-<img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/earth.png" width="300px;" alt="Earth"/><br />
+<img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/earth.gif" width="300px;" alt="Earth"/><br />
 <sub>Earth texture / 地球纹理</sub>
 </td>
 </tr>
