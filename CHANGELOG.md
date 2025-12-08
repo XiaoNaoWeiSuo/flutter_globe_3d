@@ -1,3 +1,7 @@
+## 2.1.2
+
+* Fix the README display image.
+
 ## 2.1.1
 
 * Increase sliding inertia

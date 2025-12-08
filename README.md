@@ -10,32 +10,31 @@
 ---
 
 ### ✨ Demos & Screenshots
-
 <table>
   <tr>
     <td align="center">
-      <img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/earth.gif" width="300px;" alt="Earth Animation"/><br />
-      <sub><b>Earth Animation</b></sub>
+      <img src="https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/assets/images/jupiter.png" width="300px;" alt="Jupiter"/><br />
+      <sub><b>Jupiter Texture</b></sub>
     </td>
     <td align="center">
-      <img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/earth.png" width="300px;" alt="Earth"/><br />
+      <img src="https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/assets/images/earth.png" width="300px;" alt="Earth"/><br />
       <sub><b>Earth Texture</b></sub>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/moon.png" width="300px;" alt="Moon"/><br />
+      <img src="https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/assets/images/moon.png" width="300px;" alt="Moon"/><br />
       <sub><b>Moon Texture</b></sub>
     </td>
     <td align="center">
-      <img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/spark.png" width="300px;" alt="Mars"/><br />
+      <img src="https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/assets/images/spark.png" width="300px;" alt="Mars"/><br />
       <sub><b>Mars Texture</b></sub>
     </td>
   </tr>
   <tr>
     <td align="center" colspan="2">
-      <img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/jupiter.png" width="300px;" alt="Jupiter"/><br />
-      <sub><b>Jupiter Texture</b></sub>
+      <img src="https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/assets/images/earth.gif" width="300px;" alt="Earth Animation"/><br />
+      <sub><b>Earth Animation</b></sub>
     </td>
   </tr>
 </table>

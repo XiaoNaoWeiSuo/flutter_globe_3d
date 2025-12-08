@@ -14,7 +14,7 @@ class GirdShader extends StatefulWidget {
 class _GirdShaderState extends State<GirdShader> {
   @override
   Widget build(BuildContext context) {
-    return UnifiedShaderCanvas(
+    return const UnifiedShaderCanvas(
       shaderAssetPath: "packages/flutter_globe_3d/assets/shaders/uniform.frag",
     );
   }
