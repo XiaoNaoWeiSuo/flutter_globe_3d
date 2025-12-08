@@ -1,3 +1,7 @@
+## 2.1.3
+
+* Fix the problem of latitude and longitude misalignment ｜ 修复经纬度错位的问题
+
 ## 2.1.2
 
 * Fix the README display image.
