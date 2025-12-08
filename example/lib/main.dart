@@ -149,7 +149,7 @@ class _MyEarthPageState extends State<MyEarthPage> {
       body: Column(
         children: [
           Earth3D(
-            texture: AssetImage('assets/images/earth_cloud.jpg'),
+            texture: AssetImage('assets/images/earth.png'),
             controller: _controller,
             initialScale: 3, // 地球占宽度的 80%
             size: Size(400, 400),

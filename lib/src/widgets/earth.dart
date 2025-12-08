@@ -43,7 +43,7 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
   ui.Image? _textureImage;
   late Ticker _ticker;
   double _time = 0.0;
-  
+
   // 交互状态
   Offset _lastFocalPoint = Offset.zero;
   double _baseZoom = 1.0;
@@ -74,7 +74,7 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
     // 渲染循环 & 自动自转逻辑
     _ticker = createTicker((elapsed) {
       double dt = elapsed.inMilliseconds / 1000.0;
-      
+
       // 只有在非交互状态下才自动旋转
       if (widget.controller.enableAutoRotate && !_isInteracting) {
         double speed = widget.controller.rotateSpeed;
@@ -128,7 +128,7 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
   void _onScaleStart(ScaleStartDetails details) {
     // 1. 用户开始触摸，标记为交互中，停止自动自转
     _isInteracting = true;
-    
+
     // 2. 停止任何正在进行的惯性或复位动画
     _animationController.stop();
     _resetTimer?.cancel();
@@ -166,7 +166,7 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
     // 简单的减速模拟：根据速度计算一个目标点
     // 0.5 是一个阻尼系数，决定滑动的距离
     final inertiaTarget = widget.controller.offset + velocity * 0.3;
-    
+
     _offsetAnimation = Tween<Offset>(
       begin: widget.controller.offset,
       end: inertiaTarget,
