@@ -9,7 +9,14 @@ library;
 /// related types used to render an interactive GPU-driven 3D globe.
 
 // Core re-exports
-export 'src/earthglobe.dart' show Flutter3DGlobe;
-export 'src/earth_controller.dart' show EarthController, EarthConfig;
+export 'src/core/shader_canvas.dart' show UnifiedShaderCanvas;
+
+export 'src/widgets/grid.dart' show GirdShader;
+
+export 'src/widgets/earth.dart' show Earth3D;
+
+export 'src/controller/earth_controller.dart' show EarthController;
+
 export 'src/models/earth_connection.dart' show EarthConnection;
-export 'src/models/earth_maker.dart' show EarthMarker;
+
+export 'src/models/earth_node.dart' show EarthNode;

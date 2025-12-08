@@ -1,76 +1,63 @@
-## **Flutter Globe 3D** — English / 中文
+Flutter Globe 3D — English / 中文
 
-> GPU-accelerated 3D globe widget for Flutter. 使用 Fragment Shader 在 GPU 上直接渲染球体纹理，性能强大，适合需要高帧率渲染的场景。
+GPU-accelerated 3D globe widget for Flutter.
 
----
+2.0.1 Official Stable Release.
 
-**Demo GIFs & Screenshots**
+使用 Fragment Shader 在 GPU 上直接渲染球体纹理，性能强大，适合需要高帧率渲染的场景。正式稳定版。
 
-- Live recording (spin):
+Demo GIFs & Screenshots
 
-  ![record_earth](https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/example/images/record_earth.gif)
+Live recording (spin):
 
-- Connection spark demo:
+Connection spark demo:
 
-  ![record_spark](https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/example/images/record_spark.gif)
+Screenshot — Earth:
 
-- Screenshot — Earth:
+Screenshot — Spark overlay:
 
-  ![screenshot_earth](https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/example/images/screenshot_earth.png)
-
-- Screenshot — Spark overlay:
-
-  ![screenshot_spark](https://raw.githubusercontent.com/XiaoNaoWeiSuo/flutter_globe_3d/main/example/images/screenshot_spark.png)
-
----
-
-**Language / 语言**
+Language / 语言
 
 This README contains both English and Chinese sections. Read the section you prefer.
 
 本说明同时提供英文与中文内容，向下查找对应语言段落即可。
 
----
+English
 
-## **English**
+⚠️ Important Note for 2.0.1
 
-### Quick summary
+Version 2.0.1 is a stable release featuring a completely refactored architecture.
+It is not compatible with 1.x.x versions. The API has been simplified, and performance has been significantly optimized. Please check the Usage section for migration.
 
-Flutter Globe 3D is a performant 3D globe widget implemented with Flutter Fragment Shaders. Rendering runs on the GPU (fragment shader), the Dart UI thread is not used for sphere shading; raster thread workload is small — the result is smooth animation and the ability to reach very high frame rates (e.g. 60–120 FPS on capable devices).
+Quick summary
 
-Key advantages:
-- GPU shader-based mapping -> high performance
-- Low Dart-side cost (no heavy UI work per-frame)
-- Smooth anti-aliased rendering and accurate texture mapping
+Flutter Globe 3D is a performant 3D globe widget implemented with Flutter Fragment Shaders. Rendering runs on the GPU (fragment shader), minimizing Dart UI thread usage. This design ensures smooth animations and high frame rates (60–120 FPS).
 
-Compatibility:
-- As of version 1.1.4 the display/layout defects have been fixed — the widget now adapts to arbitrary dynamic layouts (ListView, Column, Row, Stack, etc.). If you find any remaining issues, please open an issue or submit a PR.
+Key updates in 2.0.1:
 
-### Installation
+Stable & Robust: Solved all known rendering anomalies and interaction bugs.
 
-Add to `pubspec.yaml`:
+Layout Adaptive: Perfectly adapts to ListView, Column, Row, Stack, and other dynamic layouts.
 
-```yaml
+Controller-Driven: Markers and connections are now managed entirely via EarthController.
+
+Installation
+
+Add to pubspec.yaml:
+
 dependencies:
-  flutter_globe_3d: ^1.1.4
-```
+  flutter_globe_3d: ^2.0.1
 
-Add assets (example):
-
-```yaml
 flutter:
   assets:
-    - assets/shaders/globe.frag
-    - assets/earth_texture.png
-    - example/images/record_earth.gif
-    - example/images/record_spark.gif
-```
+    - packages/flutter_globe_3d/assets/shaders/earth.frag # Optional: usage explanation below
+    - assets/your_texture.png
 
-### Usage (updated example)
 
-This example matches the `example/main.dart` shipped with the package and demonstrates texture loading, markers and connections:
+Usage
 
-```dart
+The main widget is now Earth3D (previously Flutter3DGlobe). All interactions and data (Nodes/Connections) are managed through EarthController.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_globe_3d/flutter_globe_3d.dart';
 
@@ -80,150 +67,157 @@ class ExampleApp extends StatefulWidget {
 }
 
 class _ExampleAppState extends State<ExampleApp> {
+  // 1. Initialize the controller
   final EarthController controller = EarthController();
 
   @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    // 2. Load data (Nodes/Markers)
+    controller.addNode(
+      EarthNode(
+        id: 'new_york',
+        latitude: 40.7128,
+        longitude: -74.0060,
+        child: Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('3D Globe')),
+      appBar: AppBar(title: const Text('3D Globe 2.0')),
       body: Center(
-        child: Flutter3DGlobe(
+        // 3. Use the Earth3D widget
+        child: Earth3D(
           controller: controller,
-          texture: AssetImage('assets/example.png'),
-          radius: 200,
-          markers: [
-            EarthMarker(
-              id: 'ny',
-              latitude: 40.7128,
-              longitude: -74.0060,
-              child: Container(width: 12, height: 12, decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
-              label: 'New York',
-            ),
-          ],
-          connections: [],
+          texture: AssetImage('assets/earth_texture.png'), // Use your own texture image
+          initialScale: 0.8,
         ),
       ),
     );
   }
 }
-```
 
-### Configuration options & controller tips
 
-This section shows how to use the `EarthConfig` flags and the
-`EarthController.autoRotate` programmatic toggle.
+Configuration & Controller
 
-- `polarLock`: when `true`, vertical rotation (pitch) is disabled and the
-  globe only rotates horizontally.
-- `zoomLock`: when `true`, zoom changes from gestures or code are ignored.
+In 2.0.1, configuration is done directly via EarthController properties, allowing dynamic updates.
 
-Example (English):
+// Auto-rotation
+controller.enableAutoRotate = true;
+controller.rotateSpeed = 1.0; // Positive for right, negative for left
 
-```dart
-final controller = EarthController(
-  config: const EarthConfig(polarLock: true, zoomLock: false),
-  autoRotate: true,
-);
+// Interaction Locks
+controller.lockNorthSouth = true; // Lock vertical rotation (Latitude lock)
+controller.lockZoom = false;      // Enable/Disable zoom
 
-// Temporarily pause auto-rotate (for example during a custom animation)
-controller.autoRotate = false;
+// Camera/View
+controller.setZoom(1.5); // Set zoom level programmatically
+controller.setOffset(Offset(100, 0)); // Manually rotate
 
-// Resume auto-rotate
-controller.autoRotate = true;
-```
 
-示例（中文）：
+Technical Notes
 
-```dart
-// 创建控制器并锁定极轴（禁止上下倾斜），允许缩放
-final controller = EarthController(
-  config: const EarthConfig(polarLock: true, zoomLock: false),
-);
+Architecture: The Earth3D widget is a lightweight wrapper. The heavy lifting (projection, occlusion culling, rendering) is handled by the EarthController and the GPU Shader.
 
-// 在自定义交互期间暂停自动旋转
-controller.autoRotate = false;
+Assets: The package includes default shaders. You generally do not need to manually import the shader file in your pubspec.yaml unless you are overriding it, as the package handles it internally. However, ensure your texture images are declared.
 
-// 交互结束后恢复自动旋转
-controller.autoRotate = true;
-```
+中文（简体）
 
-Notes:
-- The widget defers to `EarthController.autoRotate` as the single source of
-  truth for automatic rotation. If you previously used a local widget flag for
-  auto-rotation, migrate that logic to the controller.
-- `polarLock` and `zoomLock` are immutable configuration values on
-  `EarthConfig`. Create the controller with the desired `EarthConfig` to
-  enable the locks.
+⚠️ 2.0.1 版本重要说明
 
-### Technical notes
+2.0.1 是正式稳定版本。
+此版本对架构进行了重构，不兼容 1.x.x 版本。API 更加简洁，性能大幅提升，并且彻底解决了旧版本在 ListView 或复杂布局中显示异常的问题。
 
-- Implementation: the globe surface is shaded using a fragment shader (`assets/shaders/globe.frag`). The shader computes spherical mapping and lighting on the GPU.
-- Performance: because the heavy work happens in the shader, the Dart UI thread remains mostly idle; only a small amount of state (rotation/zoom) is sent per frame. This design minimizes CPU overhead and lets modern devices reach very high frame rates.
-- Raster thread: shaders run in the GPU/raster pipeline — the plugin keeps raster thread usage small.
+简要说明
 
-### When things go wrong
+Flutter Globe 3D 是一个基于 Flutter Fragment Shader 的高性能 3D 地球组件。所有渲染计算均在 GPU 片段着色器中完成，极大地降低了 Dart UI 线程的开销，即使在移动设备上也能保持 60–120 FPS 的流畅度。
 
-- If you see the error `does not contain any shader data`, make sure the shader asset is declared in your app's `pubspec.yaml` under `flutter.assets` and `shaders` (if using Flutter's shader tooling).
-- Example `shaderAssetPath` default is `assets/shaders/globe.frag`. Do not prefix with `packages/` when the asset is included in the same package.
+2.0.1 亮点：
 
----
+稳定可靠： 修复了所有已知的渲染、闪烁和交互 Bug。
 
-## **中文（简体）**
+布局适应性： 完美适配 ListView、Row、Column 等动态布局，不再出现位置偏移。
 
-### 简要说明
+控制器驱动： 标记（Nodes）和连线（Connections）现在完全通过 EarthController 管理，逻辑更清晰。
 
-本插件使用 Flutter 的 Fragment Shader 在 GPU 上直接绘制球体纹理映射。渲染在 GPU 侧完成，不占用 Dart UI 线程，只有很少的 raster 线程开销，因此在支持的设备上可以非常流畅（可达 60–120FPS）。推荐用于需要高帧率的球体演示场景。
+安装
 
-优点：
-- 基于着色器的映射，性能强大
-- 几乎不占用 Dart UI 线程
-- 抗锯齿、贴图映射准确
+在 pubspec.yaml 中添加依赖：
 
-### 安装与资源
-
-在 `pubspec.yaml` 中添加依赖与资源：
-
-```yaml
 dependencies:
-  flutter_globe_3d: ^1.1.4
+  flutter_globe_3d: ^2.0.1
 
 flutter:
   assets:
-    - assets/shaders/globe.frag
-    - assets/example.png
-    - example/images/record_earth.gif
-    - example/images/record_spark.gif
-```
+    # 请确保添加你自己的地球纹理图片
+    - assets/earth_texture.png
 
-注意：Shader 文件须在 `assets` 下声明并与 `shaderAssetPath` 对应。
 
-### 使用示例
+使用示例
 
-请参考 `example/main.dart`：示例演示了如何创建 `EarthController`，加载纹理，添加标记，并将 `Flutter3DGlobe` 嵌入页面。
+核心组件变更为 Earth3D，通过 EarthController 来管理状态。
 
-（示例代码见上方 English 部分，已更新以匹配示例工程。）
+import 'package:flutter/material.dart';
+import 'package:flutter_globe_3d/flutter_globe_3d.dart';
 
-### 技术实现说明
+class ExampleApp extends StatefulWidget {
+  @override
+  State<ExampleApp> createState() => _ExampleAppState();
+}
 
-兼容性：
-- 自 v1.1.4 起已修复显示/布局问题；组件现在可以适配任意动态布局（如 `ListView`、`Column`、`Row`、`Stack` 等）。如仍发现问题欢迎提交 issue 或 PR。
+class _ExampleAppState extends State<ExampleApp> {
+  // 1. 创建控制器
+  final EarthController controller = EarthController();
 
-## **Contributing / 贡献**
+  @override
+  void initState() {
+    super.initState();
+    // 2. 添加标记点 (Nodes)
+    controller.addNode(
+      EarthNode(
+        id: 'beijing',
+        latitude: 39.9042,
+        longitude: 116.4074,
+        child: const Icon(Icons.location_on, color: Colors.red, size: 20),
+      ),
+    );
+  }
 
-欢迎提出 issue 或 PR。如果你能帮助改善布局兼容性（例如在更多容器与约束下也能稳定渲染），非常感谢！
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('3D Globe 2.0')),
+      body: Center(
+        // 3. 渲染地球
+        child: Earth3D(
+          controller: controller,
+          texture: AssetImage('assets/earth_texture.png'), // 加载你的纹理
+          initialScale: 0.8, // 初始缩放比例
+        ),
+      ),
+    );
+  }
+}
 
-## **License**
 
-MIT — 详见 `LICENSE`
+配置与控制器
 
----
+2.0.1 移除了 EarthConfig 类，您可以直接修改 EarthController 的属性来实时控制地球行为。
 
-**Contact / 支持**
+// 自动旋转控制
+controller.enableAutoRotate = true; // 开启/关闭自动旋转
+controller.rotateSpeed = 1.2;       // 调整转速
 
-- Issues: https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/issues
+// 交互锁定
+controller.lockNorthSouth = true;   // 锁定南北方向（禁止上下倾斜）
+controller.lockZoom = true;         // 锁定缩放
+
+// 编程式控制
+controller.setZoom(2.0);            // 代码设置缩放
