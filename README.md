@@ -5,17 +5,30 @@ Flutter Globe 3D — English / 中文
 🚀 专为 Flutter 设计的高性能 3D 地球组件。基于 GPU Fragment Shader 渲染，提供流畅的交互、标记和连线功能。
 
 Demo GIFs & Screenshots / 演示动图与截图
-
 Live recording (Spin) / 旋转演示:
 
-Connection spark demo / 连线火花效果:
-
-Earth texture screenshot / 地球纹理:
-
-Jupiter texture screenshot / 木星纹理示例:
-
-Moon texture screenshot / 月球纹理示例:
-
+<table>
+<tr>
+<td align="center">
+<img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/moon.png" width="300px;" alt="Moon"/><br />
+<sub>Moon texture / 月球纹理</sub>
+</td>
+<td align="center">
+<img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/spark.png" width="300px;" alt="Spark"/><br />
+<sub>Spark texture / 火星纹理</sub>
+</td>
+</tr>
+<tr>
+<td align="center">
+<img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/jupiter.png" width="300px;" alt="Jupiter"/><br />
+<sub>Jupiter texture / 木星纹理</sub>
+</td>
+<td align="center">
+<img src="https://github.com/XiaoNaoWeiSuo/flutter_globe_3d/blob/main/assets/images/earth.png" width="300px;" alt="Earth"/><br />
+<sub>Earth texture / 地球纹理</sub>
+</td>
+</tr>
+</table>
 Language / 语言
 
 This README contains both English and Chinese sections. Read the section you prefer.
