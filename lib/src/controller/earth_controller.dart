@@ -101,7 +101,7 @@ class EarthController extends ChangeNotifier {
 
     final double camDist = 5.0 / math.max(_zoom, 0.01);
     final double yaw = -_offset.dx / 200.0;
-    final double pitch = _offset.dy / 200.0; // 修正后的 Pitch
+    final double pitch = _offset.dy / 200.0;
 
     final double sphereRadius = scale * 0.5;
 
@@ -120,13 +120,19 @@ class EarthController extends ChangeNotifier {
     final Map<String, _Vector3> node3DPos = {};
 
     for (var node in _nodes) {
+      // 修正经纬度计算公式
       double radLat = node.latitude * math.pi / 180.0;
-      double radLon = -node.longitude * math.pi / 180.0;
+      // 修正: 增加 90 度偏移 (math.pi / 2)，对齐纹理贴图的本初子午线
+      double radLon = (node.longitude + 90.0) * math.pi / 180.0;
 
       double y = math.sin(radLat) * sphereRadius;
       double r = math.cos(radLat) * sphereRadius;
-      double x = math.cos(radLon) * r;
-      double z = math.sin(radLon) * r;
+
+      // 修正后坐标映射
+      // sin(lon + 90) = cos(lon)
+      // -cos(lon + 90) = sin(lon)
+      double x = math.sin(radLon) * r;
+      double z = -math.cos(radLon) * r;
 
       _Vector3 pWorld = _Vector3(x, y, z);
       node3DPos[node.id] = pWorld;
@@ -137,7 +143,7 @@ class EarthController extends ChangeNotifier {
           pWorld.normalize().dot((ro - pWorld).normalize()) > 0;
 
       Offset? screenPos;
-      // 只有表面可见时才投影，减少计算 (但如果需要透明地球，可以都计算)
+      // 只有表面可见时才投影，减少计算
       if (isSurfaceVisible) {
         screenPos = _project3DPoint(pWorld, ro, fwd, right, up, screenSize);
       }
