@@ -1,3 +1,7 @@
+## 2.1.1
+
+* Increase sliding inertia
+
 ## 2.0.1
 
 ### 正式稳定版，不兼容旧版本

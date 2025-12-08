@@ -38,13 +38,21 @@ class Earth3D extends StatefulWidget {
   State<Earth3D> createState() => _Earth3DState();
 }
 
-class _Earth3DState extends State<Earth3D> with SingleTickerProviderStateMixin {
+class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
   ui.FragmentProgram? _program;
   ui.Image? _textureImage;
   late Ticker _ticker;
   double _time = 0.0;
+  
+  // 交互状态
   Offset _lastFocalPoint = Offset.zero;
   double _baseZoom = 1.0;
+  bool _isInteracting = false; // 是否正在交互（触摸或惯性运动中）
+
+  // 动画控制器
+  late AnimationController _animationController;
+  Animation<Offset>? _offsetAnimation;
+  Timer? _resetTimer;
 
   @override
   void initState() {
@@ -52,9 +60,23 @@ class _Earth3DState extends State<Earth3D> with SingleTickerProviderStateMixin {
     _loadResources();
     widget.controller.addListener(_onControllerUpdate);
 
+    // 初始化动画控制器（用于惯性和复位）
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _animationController.addListener(() {
+      if (_offsetAnimation != null) {
+        widget.controller.setOffset(_offsetAnimation!.value);
+      }
+    });
+
+    // 渲染循环 & 自动自转逻辑
     _ticker = createTicker((elapsed) {
       double dt = elapsed.inMilliseconds / 1000.0;
-      if (widget.controller.enableAutoRotate) {
+      
+      // 只有在非交互状态下才自动旋转
+      if (widget.controller.enableAutoRotate && !_isInteracting) {
         double speed = widget.controller.rotateSpeed;
         Offset current = widget.controller.offset;
         widget.controller.setOffset(
@@ -75,6 +97,8 @@ class _Earth3DState extends State<Earth3D> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _ticker.dispose();
+    _animationController.dispose();
+    _resetTimer?.cancel();
     widget.controller.removeListener(_onControllerUpdate);
     super.dispose();
   }
@@ -99,7 +123,16 @@ class _Earth3DState extends State<Earth3D> with SingleTickerProviderStateMixin {
     );
   }
 
+  // --- 手势交互逻辑 ---
+
   void _onScaleStart(ScaleStartDetails details) {
+    // 1. 用户开始触摸，标记为交互中，停止自动自转
+    _isInteracting = true;
+    
+    // 2. 停止任何正在进行的惯性或复位动画
+    _animationController.stop();
+    _resetTimer?.cancel();
+
     _lastFocalPoint = details.localFocalPoint;
     _baseZoom = widget.controller.zoom;
   }
@@ -112,6 +145,81 @@ class _Earth3DState extends State<Earth3D> with SingleTickerProviderStateMixin {
     Offset current = widget.controller.offset;
     widget.controller.setOffset(current + delta);
     _lastFocalPoint = details.localFocalPoint;
+  }
+
+  void _onScaleEnd(ScaleEndDetails details) {
+    // 3. 用户手指离开，计算惯性
+    final velocity = details.velocity.pixelsPerSecond;
+    final speed = velocity.distance;
+
+    // 如果速度足够大，执行惯性滑动
+    if (speed > 50) {
+      _runInertiaAnimation(velocity);
+    } else {
+      // 否则直接进入复位倒计时
+      _startResetTimer();
+    }
+  }
+
+  /// 执行惯性动画
+  void _runInertiaAnimation(Offset velocity) {
+    // 简单的减速模拟：根据速度计算一个目标点
+    // 0.5 是一个阻尼系数，决定滑动的距离
+    final inertiaTarget = widget.controller.offset + velocity * 0.3;
+    
+    _offsetAnimation = Tween<Offset>(
+      begin: widget.controller.offset,
+      end: inertiaTarget,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.decelerate, // 减速曲线模拟摩擦力
+    ));
+
+    // 动画时长也可以根据速度动态调整，这里简化为固定时长
+    _animationController.duration = const Duration(milliseconds: 800);
+    _animationController.reset();
+    _animationController.forward().whenComplete(() {
+      // 惯性结束后，启动复位倒计时
+      _startResetTimer();
+    });
+  }
+
+  /// 启动自动复位倒计时（1秒）
+  void _startResetTimer() {
+    _resetTimer?.cancel();
+    _resetTimer = Timer(const Duration(seconds: 1), () {
+      if (mounted) {
+        _runResetAnimation();
+      }
+    });
+  }
+
+  /// 执行南北极平滑复位动画
+  void _runResetAnimation() {
+    final current = widget.controller.offset;
+    // 目标：保持当前的 X 轴旋转（经度），将 Y 轴旋转（纬度/南北）复位为 0
+    final target = Offset(current.dx, 0);
+
+    // 如果已经很接近 0，则不需要动画，直接恢复自转
+    if ((current.dy).abs() < 1.0) {
+      _isInteracting = false;
+      return;
+    }
+
+    _offsetAnimation = Tween<Offset>(
+      begin: current,
+      end: target,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOutCubic, // 平滑的缓动曲线
+    ));
+
+    _animationController.duration = const Duration(milliseconds: 1000);
+    _animationController.reset();
+    _animationController.forward().whenComplete(() {
+      // 动画完成，恢复自动自转
+      _isInteracting = false;
+    });
   }
 
   @override
@@ -128,8 +236,7 @@ class _Earth3DState extends State<Earth3D> with SingleTickerProviderStateMixin {
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = widget.size?.width ?? constraints.maxWidth;
-        final h =
-            widget.size?.height ??
+        final h = widget.size?.height ??
             (constraints.maxHeight.isFinite ? constraints.maxHeight : w);
         final size = Size(w, h);
         double shaderScale = (w / h) * widget.initialScale;
@@ -143,6 +250,7 @@ class _Earth3DState extends State<Earth3D> with SingleTickerProviderStateMixin {
         return GestureDetector(
           onScaleStart: _onScaleStart,
           onScaleUpdate: _onScaleUpdate,
+          onScaleEnd: _onScaleEnd, // 绑定 ScaleEnd 事件
           child: SizedBox(
             width: w,
             height: h,

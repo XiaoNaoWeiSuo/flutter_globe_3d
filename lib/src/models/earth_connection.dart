@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 /// `EarthConnection` 表示地球上两个节点之间的连线。
