@@ -180,7 +180,7 @@ class _Earth3DState extends State<Earth3D> with SingleTickerProviderStateMixin {
                     top: pos.dy,
                     child: FractionalTranslation(
                       translation: const Offset(-0.5, -0.5),
-                      child: node.child!,
+                      child: node.child,
                     ),
                   );
                 }),
