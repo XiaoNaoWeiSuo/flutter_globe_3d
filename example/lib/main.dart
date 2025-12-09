@@ -32,7 +32,11 @@ class _MyEarthPageState extends State<MyEarthPage> {
   final Color colorRoute = Colors.orangeAccent;
   final Color colorLongHaul = Colors.purpleAccent;
   final Color colorLocal = Colors.white38;
-
+  
+  // 初始光源坐标设为拉萨
+  double _fixedLat = 29.65;
+  double _fixedLon = 91.11;
+  
   @override
   void initState() {
     super.initState();
@@ -42,8 +46,16 @@ class _MyEarthPageState extends State<MyEarthPage> {
   void _initEarthData() {
     // 1. 基础配置
     _controller.rotateSpeed = 0.5;
-    _controller.enableAutoRotate = true;
+    _controller.enableAutoRotate = false;
     _controller.minZoom = 0.1; // 允许缩放得很小以查看全貌
+    
+    // 设置光源模式为固定坐标，并指向拉萨
+    _controller.setLightMode(EarthLightMode.fixedCoordinates);
+    _controller.setFixedLightCoordinates(_fixedLat, _fixedLon);
+    
+    // 注意：这里设置的焦点会被 Earth3D widget 的 initialLatitude/initialLongitude 参数覆盖
+    // 这里保持一致性也设置为上海
+    _controller.setCameraFocus(31.23, 121.47); 
 
     // 2. 全球城市数据 (覆盖各大洲、极端经纬度)
     final cities = [
@@ -54,6 +66,7 @@ class _MyEarthPageState extends State<MyEarthPage> {
       {'id': 'sg', 'lat': 1.35, 'lon': 103.82, 'name': '新加坡'}, // 赤道附近
       {'id': 'dxb', 'lat': 25.20, 'lon': 55.27, 'name': '迪拜'},
       {'id': 'nd', 'lat': 28.61, 'lon': 77.20, 'name': '新德里'},
+      {'id': 'lhasa', 'lat': 29.65, 'lon': 91.11, 'name': '拉萨'}, // 添加拉萨节点以便观察光源直射点
 
       // --- 欧洲 ---
       {'id': 'ld', 'lat': 51.50, 'lon': -0.12, 'name': '伦敦'}, // 本初子午线
@@ -192,7 +205,7 @@ class _MyEarthPageState extends State<MyEarthPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.6),
+          color: Colors.black.withAlpha(155),
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: Colors.white24, width: 0.5),
         ),
@@ -213,46 +226,147 @@ class _MyEarthPageState extends State<MyEarthPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // 3D 地球
-          Center(
-            child: Earth3D(
-              texture: const AssetImage('assets/images/earth.png'),
-              controller: _controller,
-              initialScale: 3,
-              // 让地球撑满宽度，高度自动适配
-              size: const Size(400, 400),
-            ),
-          ),
+      body:
           // 顶部标题
-          Positioned(
-            top: 50,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Column(
-                children: const [
-                  Text(
-                    "GLOBAL NETWORK VISUALIZATION",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      letterSpacing: 3,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    "Touch to interact • Auto-reset enabled",
-                    style: TextStyle(color: Colors.white54, fontSize: 10),
-                  ),
-                ],
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Text(
+                "GLOBAL NETWORK VISUALIZATION",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  letterSpacing: 3,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+              Center(
+                child: Earth3D(
+                  controller: _controller,
+                  initialScale: 3,
+                  // 初始相机瞄准上海 (31.23, 121.47)
+                  initialLatitude: 31.23,
+                  initialLongitude: 121.47,
+                  // 让地球撑满宽度，高度自动适配
+                  size: const Size(400, 400),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.grey[900],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "光源模式 (Light Mode):",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    const SizedBox(height: 8),
+                    // 模式切换按钮
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildModeButton("跟随相机", EarthLightMode.followCamera),
+                          const SizedBox(width: 10),
+                          _buildModeButton("真实时间", EarthLightMode.realTime),
+                          const SizedBox(width: 10),
+                          _buildModeButton(
+                            "固定坐标",
+                            EarthLightMode.fixedCoordinates,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // 如果是固定坐标模式，显示调节滑块
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, _) {
+                        if (_controller.lightMode ==
+                            EarthLightMode.fixedCoordinates) {
+                          return Column(
+                            children: [
+                              const Divider(color: Colors.white24),
+                              _buildSlider("光源纬度", _fixedLat, -90, 90, (val) {
+                                setState(() => _fixedLat = val);
+                                _controller.setFixedLightCoordinates(
+                                  _fixedLat,
+                                  _fixedLon,
+                                );
+                              }),
+                              _buildSlider("光源经度", _fixedLon, -180, 180, (val) {
+                                setState(() => _fixedLon = val);
+                                _controller.setFixedLightCoordinates(
+                                  _fixedLat,
+                                  _fixedLon,
+                                );
+                              }),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+    );
+  }
+
+  Widget _buildModeButton(String label, EarthLightMode mode) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        bool isSelected = _controller.lightMode == mode;
+        return ElevatedButton(
+          onPressed: () {
+            _controller.setLightMode(mode);
+            // 如果切回固定模式，重置一下当前的滑块值进控制器
+            if (mode == EarthLightMode.fixedCoordinates) {
+              _controller.setFixedLightCoordinates(_fixedLat, _fixedLon);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isSelected ? Colors.blueAccent : Colors.white10,
+            foregroundColor: isSelected ? Colors.white : Colors.grey,
+          ),
+          child: Text(label),
+        );
+      },
+    );
+  }
+
+  // 构建滑块
+  Widget _buildSlider(
+    String label,
+    double value,
+    double min,
+    double max,
+    ValueChanged<double> onChanged,
+  ) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 70,
+          child: Text(
+            "$label\n${value.toStringAsFixed(0)}°",
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ),
+        Expanded(
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            activeColor: Colors.orangeAccent,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
     );
   }
 }

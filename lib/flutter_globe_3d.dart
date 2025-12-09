@@ -15,7 +15,8 @@ export 'src/widgets/grid.dart' show GirdShader;
 
 export 'src/widgets/earth.dart' show Earth3D;
 
-export 'src/controller/earth_controller.dart' show EarthController;
+export 'src/controller/earth_controller.dart'
+    show EarthController, EarthLightMode;
 
 export 'src/models/earth_connection.dart' show EarthConnection;
 

@@ -10,6 +10,7 @@
 ---
 
 ### ✨ Demos & Screenshots
+
 <table>
   <tr>
     <td align="center">
@@ -43,9 +44,11 @@
 
 ## English
 
-### 🌟 Features (v2.0.1)
+### 🌟 Features (v2.2.3)
 
 - **High-Performance:** Renders the globe on the GPU using Fragment Shaders, ensuring high frame rates (60-120FPS) and minimal CPU load.
+- **Advanced Lighting:** Supports `RealTime` (day/night cycle), `FollowCamera`, and `FixedCoordinates` light modes.
+- **Precise Control:** Programmatically focus the camera on specific coordinates (Latitude/Longitude).
 - **Stable & Adaptive:** A robust architecture that works seamlessly within dynamic layouts like `ListView` and `Stack`.
 - **Controller-Driven:** All state, including rotation, zoom, markers, and connections, is managed through a unified `EarthController`.
 - **Customizable:** Easily swap textures to display different celestial bodies like the Moon, Mars, or Jupiter.
@@ -58,7 +61,7 @@ Add the dependency to your `pubspec.yaml` and declare your texture assets.
 
 ```yaml
 dependencies:
-  flutter_globe_3d: ^2.0.1
+  flutter_globe_3d: ^2.2.3
 
 flutter:
   assets:
@@ -111,7 +114,23 @@ class _GlobeDemoState extends State<GlobeDemo> {
 }
 ```
 
-#### 3. Adding Markers (Nodes)
+#### 3. Lighting & Camera Control (New in v2.2.3)
+
+You can now control the lighting mode and programmatically focus the camera.
+
+```dart
+// Set light mode to RealTime (simulates sun position based on UTC time)
+controller.setLightMode(EarthLightMode.realTime);
+
+// Or set a fixed light source
+controller.setLightMode(EarthLightMode.fixedCoordinates);
+controller.setFixedLightCoordinates(30.0, 120.0); // Lat, Lon
+
+// Focus camera on a specific location (e.g., Tokyo)
+controller.setCameraFocus(35.6895, 139.6917);
+```
+
+#### 4. Adding Markers (Nodes)
 
 Define markers with `EarthNode` and add them using the controller.
 
@@ -128,7 +147,7 @@ controller.addNode(
 );
 ```
 
-#### 4. Adding Connections
+#### 5. Adding Connections
 
 Use `EarthConnection` to link two existing nodes by their IDs. Connections are rendered as 3D arcs with occlusion culling.
 
@@ -146,28 +165,33 @@ controller.connect(
 );
 ```
 
-#### 5. Controller API
+#### 6. Controller API
 
 The `EarthController` allows you to dynamically control the globe's behavior.
 
-| Property           | Type     | Description                                                 |
-| ------------------ | -------- | ----------------------------------------------------------- |
-| `enableAutoRotate` | `bool`   | Toggles continuous horizontal rotation.                     |
-| `rotateSpeed`      | `double` | Sets the auto-rotation speed (positive for right).          |
-| `lockNorthSouth`   | `bool`   | Locks vertical rotation (pitch), preventing polar tilt.     |
-| `lockZoom`         | `bool`   | Disables all zoom interactions.                             |
-| `setZoom(z)`       | `void`   | Programmatically sets the zoom level.                       |
-| `setOffset(o)`     | `void`   | Programmatically sets the rotation offset (simulates drag). |
-| `addNode(node)`    | `void`   | Adds a new marker node to the globe.                        |
-| `connect(conn)`    | `void`   | Adds a new connection line between two nodes.               |
+| Property/Method | Type | Description |
+| :--- | :--- | :--- |
+| `enableAutoRotate` | `bool` | Toggles continuous horizontal rotation. |
+| `rotateSpeed` | `double` | Sets the auto-rotation speed (positive for right). |
+| `lockNorthSouth` | `bool` | Locks vertical rotation (pitch), preventing polar tilt. |
+| `lockZoom` | `bool` | Disables all zoom interactions. |
+| `setZoom(z)` | `void` | Programmatically sets the zoom level. |
+| `setOffset(o)` | `void` | Programmatically sets the rotation offset (simulates drag). |
+| `setCameraFocus(lat, lon)` | `void` | **(New)** Focuses the camera on specific coordinates. |
+| `setLightMode(mode)` | `void` | **(New)** Sets lighting mode (`realTime`, `followCamera`, `fixed`). |
+| `setFixedLightCoordinates` | `void` | **(New)** Sets light position for `fixedCoordinates` mode. |
+| `addNode(node)` | `void` | Adds a new marker node to the globe. |
+| `connect(conn)` | `void` | Adds a new connection line between two nodes. |
 
 ---
 
 ## <a name="中文简体"></a>中文 (简体)
 
-### 🌟 核心特点 (v2.0.1)
+### 🌟 核心特点 (v2.2.3)
 
 - **高性能渲染:** 基于 GPU Fragment Shader 直接渲染，极大减少 CPU 开销，确保高帧率（60–120FPS）下的流畅交互。
+- **高级光照系统:** 支持 `RealTime` (实时日照)、`FollowCamera` (跟随相机) 和 `FixedCoordinates` (固定坐标) 三种光照模式。
+- **精准相机控制:** 支持编程式聚焦到指定的经纬度坐标。
 - **稳定自适应:** 架构稳定，已修复所有已知布局和渲染问题，完美适应各类动态布局（如 `ListView`, `Stack`）。
 - **控制器驱动:** 所有状态（旋转、缩放、标记、连线）均由 `EarthController` 统一管理，逻辑清晰。
 - **高度可定制:** 可轻松更换纹理，用于展示不同的星球（如月球、木星等）。
@@ -180,7 +204,7 @@ The `EarthController` allows you to dynamically control the globe's behavior.
 
 ```yaml
 dependencies:
-  flutter_globe_3d: ^2.0.1
+  flutter_globe_3d: ^2.2.3
 
 flutter:
   assets:
@@ -232,7 +256,23 @@ class _GlobeDemoState extends State<GlobeDemo> {
 }
 ```
 
-#### 3. 添加标记点 (Nodes)
+#### 3. 光照与相机控制 (v2.2.3 新增)
+
+您现在可以控制光照模式，并以编程方式将相机聚焦到特定位置。
+
+```dart
+// 设置光照模式为实时 (根据 UTC 时间模拟太阳位置)
+controller.setLightMode(EarthLightMode.realTime);
+
+// 或者设置固定光源
+controller.setLightMode(EarthLightMode.fixedCoordinates);
+controller.setFixedLightCoordinates(30.0, 120.0); // 纬度, 经度
+
+// 将相机聚焦到特定位置 (例如: 东京)
+controller.setCameraFocus(35.6895, 139.6917);
+```
+
+#### 4. 添加标记点 (Nodes)
 
 通过 `EarthNode` 定义标记点，并使用 `controller.addNode()` 方法添加到地球上。
 
@@ -249,7 +289,7 @@ controller.addNode(
 );
 ```
 
-#### 4. 添加连线 (Connections)
+#### 5. 添加连线 (Connections)
 
 使用 `EarthConnection` 连接两个已存在的 `EarthNode` 的 ID。连线默认呈 3D 拱形，并进行遮挡剔除。
 
@@ -267,20 +307,23 @@ controller.connect(
 );
 ```
 
-#### 5. 控制器 API 参考
+#### 6. 控制器 API 参考
 
 `EarthController` 是控制地球行为的核心，您可以通过修改其属性实现自定义交互和动画。
 
-| 属性/方法          | 类型     | 描述                                       |
-| ------------------ | -------- | ------------------------------------------ |
-| `enableAutoRotate` | `bool`   | 是否开启自动水平旋转。                     |
-| `rotateSpeed`      | `double` | 自动旋转速度（正值向右，负值向左）。       |
-| `lockNorthSouth`   | `bool`   | 锁定南北方向旋转（禁止上下倾斜）。         |
-| `lockZoom`         | `bool`   | 锁定缩放功能。                             |
-| `setZoom(z)`       | `void`   | 编程式设置缩放级别。                       |
-| `setOffset(o)`     | `void`   | 编程式设置旋转偏移量（相当于手动拖动）。   |
-| `addNode(node)`    | `void`   | 添加新的标记点。                           |
-| `connect(conn)`    | `void`   | 添加新的连线。                             |
+| 属性/方法 | 类型 | 描述 |
+| :--- | :--- | :--- |
+| `enableAutoRotate` | `bool` | 是否开启自动水平旋转。 |
+| `rotateSpeed` | `double` | 自动旋转速度（正值向右，负值向左）。 |
+| `lockNorthSouth` | `bool` | 锁定南北方向旋转（禁止上下倾斜）。 |
+| `lockZoom` | `bool` | 锁定缩放功能。 |
+| `setZoom(z)` | `void` | 编程式设置缩放级别。 |
+| `setOffset(o)` | `void` | 编程式设置旋转偏移量（相当于手动拖动）。 |
+| `setCameraFocus(lat, lon)` | `void` | **(新增)** 将相机聚焦到指定的经纬度。 |
+| `setLightMode(mode)` | `void` | **(新增)** 设置光照模式 (`realTime`, `followCamera`, `fixed`)。 |
+| `setFixedLightCoordinates` | `void` | **(新增)** 设置 `fixedCoordinates` 模式下的光源位置。 |
+| `addNode(node)` | `void` | 添加新的标记点。 |
+| `connect(conn)` | `void` | 添加新的连线。 |
 
 ---
 

@@ -6,32 +6,27 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_globe_3d/src/controller/earth_controller.dart';
 import 'package:flutter_globe_3d/src/painter/earth_painter.dart';
 
-/// `Earth3D` 是一个 Flutter widget，用于渲染一个交互式的 3D 地球。
-/// 它使用 GPU 片段着色器进行高性能渲染，支持纹理、控制器、初始缩放和自定义大小。
 class Earth3D extends StatefulWidget {
-  /// 着色器资产的路径。默认为 `packages/flutter_globe_3d/assets/shaders/earth.frag`。
   final String shaderAsset;
-
-  /// 地球的纹理图像提供者。
   final ImageProvider texture;
-
-  /// 控制地球行为的控制器，例如旋转、缩放和标记。
   final EarthController controller;
-
-  /// 地球的初始缩放比例。
   final double initialScale;
-
-  /// widget 的可选大小。如果未提供，则会根据父级约束自动调整。
   final Size? size;
 
-  /// 构造函数，用于创建 `Earth3D` widget。
+  // [新增] 初始相机直射点经纬度
+  final double? initialLatitude;
+  final double? initialLongitude;
+
   const Earth3D({
     super.key,
     this.shaderAsset = "packages/flutter_globe_3d/assets/shaders/earth.frag",
-    required this.texture,
+    this.texture = const AssetImage("packages/flutter_globe_3d/assets/images/earth.jpg"),
     required this.controller,
     this.initialScale = 0.75,
     this.size,
+    // [新增] 参数
+    this.initialLatitude,
+    this.initialLongitude,
   });
 
   @override
@@ -43,13 +38,9 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
   ui.Image? _textureImage;
   late Ticker _ticker;
   double _time = 0.0;
-
-  // 交互状态
   Offset _lastFocalPoint = Offset.zero;
   double _baseZoom = 1.0;
-  bool _isInteracting = false; // 是否正在交互（触摸或惯性运动中）
-
-  // 动画控制器
+  bool _isInteracting = false; 
   late AnimationController _animationController;
   Animation<Offset>? _offsetAnimation;
   Timer? _resetTimer;
@@ -59,6 +50,14 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
     super.initState();
     _loadResources();
     widget.controller.addListener(_onControllerUpdate);
+
+    // [新增] 如果设置了初始经纬度，在初始化时定位相机
+    if (widget.initialLatitude != null && widget.initialLongitude != null) {
+      widget.controller.setCameraFocus(
+        widget.initialLatitude!, 
+        widget.initialLongitude!
+      );
+    }
 
     // 初始化动画控制器（用于惯性和复位）
     _animationController = AnimationController(
@@ -123,16 +122,11 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
     );
   }
 
-  // --- 手势交互逻辑 ---
-
+  // --- 手势交互逻辑 (保持不变) ---
   void _onScaleStart(ScaleStartDetails details) {
-    // 1. 用户开始触摸，标记为交互中，停止自动自转
     _isInteracting = true;
-
-    // 2. 停止任何正在进行的惯性或复位动画
     _animationController.stop();
     _resetTimer?.cancel();
-
     _lastFocalPoint = details.localFocalPoint;
     _baseZoom = widget.controller.zoom;
   }
@@ -148,43 +142,31 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
   }
 
   void _onScaleEnd(ScaleEndDetails details) {
-    // 3. 用户手指离开，计算惯性
     final velocity = details.velocity.pixelsPerSecond;
     final speed = velocity.distance;
-
-    // 如果速度足够大，执行惯性滑动
     if (speed > 50) {
       _runInertiaAnimation(velocity);
     } else {
-      // 否则直接进入复位倒计时
       _startResetTimer();
     }
   }
 
-  /// 执行惯性动画
   void _runInertiaAnimation(Offset velocity) {
-    // 简单的减速模拟：根据速度计算一个目标点
-    // 0.5 是一个阻尼系数，决定滑动的距离
     final inertiaTarget = widget.controller.offset + velocity * 0.3;
-
     _offsetAnimation = Tween<Offset>(
       begin: widget.controller.offset,
       end: inertiaTarget,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: Curves.decelerate, // 减速曲线模拟摩擦力
+      curve: Curves.decelerate,
     ));
-
-    // 动画时长也可以根据速度动态调整，这里简化为固定时长
     _animationController.duration = const Duration(milliseconds: 800);
     _animationController.reset();
     _animationController.forward().whenComplete(() {
-      // 惯性结束后，启动复位倒计时
       _startResetTimer();
     });
   }
 
-  /// 启动自动复位倒计时（1秒）
   void _startResetTimer() {
     _resetTimer?.cancel();
     _resetTimer = Timer(const Duration(seconds: 1), () {
@@ -194,32 +176,44 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
     });
   }
 
-  /// 执行南北极平滑复位动画
   void _runResetAnimation() {
     final current = widget.controller.offset;
-    // 目标：保持当前的 X 轴旋转（经度），将 Y 轴旋转（纬度/南北）复位为 0
     final target = Offset(current.dx, 0);
-
-    // 如果已经很接近 0，则不需要动画，直接恢复自转
     if ((current.dy).abs() < 1.0) {
       _isInteracting = false;
       return;
     }
-
     _offsetAnimation = Tween<Offset>(
       begin: current,
       end: target,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeInOutCubic, // 平滑的缓动曲线
+      curve: Curves.easeInOutCubic,
     ));
-
     _animationController.duration = const Duration(milliseconds: 1000);
     _animationController.reset();
     _animationController.forward().whenComplete(() {
-      // 动画完成，恢复自动自转
       _isInteracting = false;
     });
+  }
+
+  // --- 辅助方法：3D 向量旋转 ---
+  (double, double, double) _rotateVector(double x, double y, double z, double pitch, double yaw) {
+      // Rotate X (Pitch)
+      double c = math.cos(pitch);
+      double s = math.sin(pitch);
+      double y1 = y * c - z * s;
+      double z1 = y * s + z * c;
+      double x1 = x;
+
+      // Rotate Y (Yaw)
+      c = math.cos(yaw);
+      s = math.sin(yaw);
+      double x2 = x1 * c - z1 * s;
+      double y2 = y1;
+      double z2 = x1 * s + z1 * c;
+      
+      return (x2, y2, z2);
   }
 
   @override
@@ -243,14 +237,63 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
 
         widget.controller.updateProjections(size, shaderScale, _time);
 
-        final now = DateTime.now().toUtc();
-        double hourOffset = now.hour + now.minute / 60.0 + now.second / 3600.0;
-        double sunAngle = (hourOffset - 12.0) * 15.0 * (math.pi / 180.0);
+        // --- 计算光照向量 ---
+        double lx = 0, ly = 0, lz = 1.0;
+
+        switch (widget.controller.lightMode) {
+          case EarthLightMode.realTime:
+             // 保持原样
+             final now = DateTime.now().toUtc();
+             double hourOffset = now.hour + now.minute / 60.0 + now.second / 3600.0;
+             double sunAngle = (hourOffset - 12.0) * 15.0 * (math.pi / 180.0);
+             lx = math.cos(sunAngle);
+             ly = 0.1; 
+             lz = -math.sin(sunAngle);
+             break;
+
+          case EarthLightMode.fixedCoordinates:
+             // 保持原样
+             double latRad = widget.controller.fixedLightLat * math.pi / 180.0;
+             double lonRad = (widget.controller.fixedLightLon + 90.0) * math.pi / 180.0;
+             double y = math.sin(latRad);
+             double r = math.cos(latRad);
+             lx = math.sin(lonRad) * r;
+             lz = -math.cos(lonRad) * r;
+             ly = y;
+             break;
+
+          case EarthLightMode.followCamera:
+             // [关键修改] 光源不再完全跟随相机 (0, 0, -1)
+             // 为了产生立体感，将光源移至相机视角的 "左上角"
+             // 相机空间坐标: 
+             // x: -1.0 (左)
+             // y:  1.0 (上)
+             // z: -0.5 (稍微靠前，不用完全平行，增加深度)
+             // 
+             // 这样光线从左上方打下来，右下角会有阴影。
+             
+             final double yaw = -widget.controller.offset.dx / 200.0;
+             final double pitch = widget.controller.offset.dy / 200.0;
+             
+             // 调用旋转函数，确保光照向量跟随相机一起旋转
+             var (rx, ry, rz) = _rotateVector(-1.5, 1.5, -1.0, pitch, yaw);
+             
+             lx = rx;
+             ly = ry;
+             lz = rz;
+             break;
+        }
+
+        // 归一化
+        double len = math.sqrt(lx*lx + ly*ly + lz*lz);
+        if (len > 0) {
+          lx /= len; ly /= len; lz /= len;
+        }
 
         return GestureDetector(
           onScaleStart: _onScaleStart,
           onScaleUpdate: _onScaleUpdate,
-          onScaleEnd: _onScaleEnd, // 绑定 ScaleEnd 事件
+          onScaleEnd: _onScaleEnd,
           child: SizedBox(
             width: w,
             height: h,
@@ -266,7 +309,9 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
                       zoom: widget.controller.zoom,
                       time: _time,
                       scale: shaderScale,
-                      sunAngle: sunAngle,
+                      lightDirX: lx,
+                      lightDirY: ly,
+                      lightDirZ: lz,
                     ),
                   ),
                 ),
