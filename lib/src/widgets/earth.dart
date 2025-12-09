@@ -22,8 +22,8 @@ class Earth3D extends StatefulWidget {
     this.shaderAsset = "packages/flutter_globe_3d/assets/shaders/earth.frag",
     this.texture =
         const AssetImage("packages/flutter_globe_3d/assets/images/earth.jpg"),
-    this.nightTexture =
-        const AssetImage("packages/flutter_globe_3d/assets/images/earth_night.jpg"),
+    this.nightTexture = const AssetImage(
+        "packages/flutter_globe_3d/assets/images/earth_night.jpg"),
     required this.controller,
     this.initialScale = 0.75,
     this.size,

@@ -34,7 +34,7 @@ class EarthShaderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final shader = program.fragmentShader();
-    
+
     // Uniforms 0-9
     shader.setFloat(0, resolution.width);
     shader.setFloat(1, resolution.height);
@@ -46,13 +46,13 @@ class EarthShaderPainter extends CustomPainter {
     shader.setFloat(7, lightDirX);
     shader.setFloat(8, lightDirY);
     shader.setFloat(9, lightDirZ);
-    
+
     // [Index 10] 是否有夜景贴图
     shader.setFloat(10, hasNightTexture ? 1.0 : 0.0);
 
     // [Sampler 0] 白天纹理
     shader.setImageSampler(0, texture);
-    
+
     // [Sampler 1] 夜景纹理
     // 注意：即使 hasNightTexture 为 false，也要传一个占位纹理以防 Shader 崩溃
     shader.setImageSampler(1, nightTexture ?? texture);
@@ -72,7 +72,7 @@ class LinesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // ... 原有的连线绘制逻辑 ...
-      final paint = Paint()
+    final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
@@ -95,8 +95,9 @@ class LinesPainter extends CustomPainter {
     }
   }
 
-  void _drawDashedPath(Canvas canvas, Path originalPath, Paint paint, double time) {
-      const double dashWidth = 5;
+  void _drawDashedPath(
+      Canvas canvas, Path originalPath, Paint paint, double time) {
+    const double dashWidth = 5;
     const double dashSpace = 5;
     final double phase = (time * 20) % (dashWidth + dashSpace);
 
@@ -122,7 +123,7 @@ class LinesPainter extends CustomPainter {
   }
 
   void _drawArrowOnPath(Canvas canvas, Path path, Color color) {
-       final ui.PathMetrics metrics = path.computeMetrics();
+    final ui.PathMetrics metrics = path.computeMetrics();
     for (ui.PathMetric metric in metrics) {
       if (metric.length == 0) continue;
       // 在路径的 66% 处获取位置和切线

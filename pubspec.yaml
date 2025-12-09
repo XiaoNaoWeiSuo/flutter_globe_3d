@@ -1,6 +1,6 @@
 name: flutter_globe_3d
 description: "High-performance Flutter widget that renders an interactive 3D Earth globe using GPU fragment shaders; supports markers, connections and smooth gestures."
-version: 2.2.3
+version: 2.2.4
 homepage: https://github.com/XiaoNaoWeiSuo/flutter_globe_3d
 repository: https://github.com/XiaoNaoWeiSuo/flutter_globe_3d
 
