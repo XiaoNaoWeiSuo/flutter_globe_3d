@@ -5,13 +5,13 @@ import 'package:flutter_globe_3d/src/controller/earth_controller.dart';
 class EarthShaderPainter extends CustomPainter {
   final ui.FragmentProgram program;
   final ui.Image texture;
+  final ui.Image? nightTexture; // 夜景纹理
+  final bool hasNightTexture;
   final Size resolution;
   final Offset offset;
   final double zoom;
   final double time;
   final double scale;
-
-  // [修改] 接收光照方向向量 (x, y, z)
   final double lightDirX;
   final double lightDirY;
   final double lightDirZ;
@@ -19,12 +19,13 @@ class EarthShaderPainter extends CustomPainter {
   EarthShaderPainter({
     required this.program,
     required this.texture,
+    this.nightTexture,
+    this.hasNightTexture = false,
     required this.resolution,
     required this.offset,
     required this.zoom,
     required this.time,
     required this.scale,
-    // [修改] 构造函数参数更新
     required this.lightDirX,
     required this.lightDirY,
     required this.lightDirZ,
@@ -33,7 +34,8 @@ class EarthShaderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final shader = program.fragmentShader();
-    // 0-6 不变
+    
+    // Uniforms 0-9
     shader.setFloat(0, resolution.width);
     shader.setFloat(1, resolution.height);
     shader.setFloat(2, offset.dx);
@@ -41,14 +43,20 @@ class EarthShaderPainter extends CustomPainter {
     shader.setFloat(4, zoom);
     shader.setFloat(5, time);
     shader.setFloat(6, scale);
-
-    // [修改] 传递 vec3 uLightDir (index 7, 8, 9)
     shader.setFloat(7, lightDirX);
     shader.setFloat(8, lightDirY);
     shader.setFloat(9, lightDirZ);
+    
+    // [Index 10] 是否有夜景贴图
+    shader.setFloat(10, hasNightTexture ? 1.0 : 0.0);
 
-    // Sampler 索引不变 (0)
+    // [Sampler 0] 白天纹理
     shader.setImageSampler(0, texture);
+    
+    // [Sampler 1] 夜景纹理
+    // 注意：即使 hasNightTexture 为 false，也要传一个占位纹理以防 Shader 崩溃
+    shader.setImageSampler(1, nightTexture ?? texture);
+
     canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
   }
 
@@ -58,14 +66,13 @@ class EarthShaderPainter extends CustomPainter {
 
 // LinesPainter 保持不变...
 class LinesPainter extends CustomPainter {
-  // ... (保持原样)
   final EarthController controller;
   final double time;
   LinesPainter({required this.controller, required this.time});
   @override
   void paint(Canvas canvas, Size size) {
-    // 保持原样
-    final paint = Paint()
+    // ... 原有的连线绘制逻辑 ...
+      final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
@@ -88,10 +95,8 @@ class LinesPainter extends CustomPainter {
     }
   }
 
-  void _drawDashedPath(
-      Canvas canvas, Path originalPath, Paint paint, double time) {
-    // 保持原样
-    const double dashWidth = 5;
+  void _drawDashedPath(Canvas canvas, Path originalPath, Paint paint, double time) {
+      const double dashWidth = 5;
     const double dashSpace = 5;
     final double phase = (time * 20) % (dashWidth + dashSpace);
 
@@ -117,8 +122,7 @@ class LinesPainter extends CustomPainter {
   }
 
   void _drawArrowOnPath(Canvas canvas, Path path, Color color) {
-    // 保持原样
-    final ui.PathMetrics metrics = path.computeMetrics();
+       final ui.PathMetrics metrics = path.computeMetrics();
     for (ui.PathMetric metric in metrics) {
       if (metric.length == 0) continue;
       // 在路径的 66% 处获取位置和切线

@@ -32,6 +32,7 @@ flutter:
   generate: true
   assets:
     - assets/images/earth.jpg
+    - assets/images/earth_night.jpg
   shaders:
     - assets/shaders/uniform.frag
     - assets/shaders/earth.frag

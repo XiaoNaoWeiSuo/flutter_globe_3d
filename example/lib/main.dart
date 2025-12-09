@@ -248,6 +248,7 @@ class _MyEarthPageState extends State<MyEarthPage> {
                 child: Earth3D(
                   controller: _controller,
                   initialScale: 3,
+                  // nightTexture: null,
                   // 初始相机瞄准上海 (31.23, 121.47)
                   initialLatitude: 31.23,
                   initialLongitude: 121.47,

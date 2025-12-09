@@ -9,11 +9,11 @@ import 'package:flutter_globe_3d/src/painter/earth_painter.dart';
 class Earth3D extends StatefulWidget {
   final String shaderAsset;
   final ImageProvider texture;
+  final ImageProvider? nightTexture; // [新增] 夜景纹理参数
   final EarthController controller;
   final double initialScale;
   final Size? size;
 
-  // [新增] 初始相机直射点经纬度
   final double? initialLatitude;
   final double? initialLongitude;
 
@@ -22,10 +22,11 @@ class Earth3D extends StatefulWidget {
     this.shaderAsset = "packages/flutter_globe_3d/assets/shaders/earth.frag",
     this.texture =
         const AssetImage("packages/flutter_globe_3d/assets/images/earth.jpg"),
+    this.nightTexture =
+        const AssetImage("packages/flutter_globe_3d/assets/images/earth_night.jpg"),
     required this.controller,
     this.initialScale = 0.75,
     this.size,
-    // [新增] 参数
     this.initialLatitude,
     this.initialLongitude,
   });
@@ -37,6 +38,7 @@ class Earth3D extends StatefulWidget {
 class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
   ui.FragmentProgram? _program;
   ui.Image? _textureImage;
+  ui.Image? _nightTextureImage; // [新增] 夜景纹理对象
   late Ticker _ticker;
   double _time = 0.0;
   Offset _lastFocalPoint = Offset.zero;
@@ -52,13 +54,11 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
     _loadResources();
     widget.controller.addListener(_onControllerUpdate);
 
-    // [新增] 如果设置了初始经纬度，在初始化时定位相机
     if (widget.initialLatitude != null && widget.initialLongitude != null) {
       widget.controller
           .setCameraFocus(widget.initialLatitude!, widget.initialLongitude!);
     }
 
-    // 初始化动画控制器（用于惯性和复位）
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -69,11 +69,9 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
       }
     });
 
-    // 渲染循环 & 自动自转逻辑
     _ticker = createTicker((elapsed) {
       double dt = elapsed.inMilliseconds / 1000.0;
 
-      // 只有在非交互状态下才自动旋转
       if (widget.controller.enableAutoRotate && !_isInteracting) {
         double speed = widget.controller.rotateSpeed;
         Offset current = widget.controller.offset;
@@ -109,6 +107,7 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
       debugPrint("Shader load failed: $e");
     }
 
+    // 加载白天纹理
     final ImageStream stream = widget.texture.resolve(ImageConfiguration.empty);
     stream.addListener(
       ImageStreamListener((info, _) {
@@ -119,6 +118,23 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
         }
       }),
     );
+
+    // [新增] 加载夜景纹理 (如果有的话)
+    if (widget.nightTexture != null) {
+      final ImageStream nightStream =
+          widget.nightTexture!.resolve(ImageConfiguration.empty);
+      nightStream.addListener(
+        ImageStreamListener((info, _) {
+          if (mounted) {
+            setState(() {
+              _nightTextureImage = info.image;
+            });
+          }
+        }, onError: (exception, stackTrace) {
+          debugPrint("Night texture load failed: $exception");
+        }),
+      );
+    }
   }
 
   // --- 手势交互逻辑 (保持不变) ---
@@ -199,14 +215,12 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
   // --- 辅助方法：3D 向量旋转 ---
   (double, double, double) _rotateVector(
       double x, double y, double z, double pitch, double yaw) {
-    // Rotate X (Pitch)
     double c = math.cos(pitch);
     double s = math.sin(pitch);
     double y1 = y * c - z * s;
     double z1 = y * s + z * c;
     double x1 = x;
 
-    // Rotate Y (Yaw)
     c = math.cos(yaw);
     s = math.sin(yaw);
     double x2 = x1 * c - z1 * s;
@@ -242,7 +256,6 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
 
         switch (widget.controller.lightMode) {
           case EarthLightMode.realTime:
-            // 保持原样
             final now = DateTime.now().toUtc();
             double hourOffset =
                 now.hour + now.minute / 60.0 + now.second / 3600.0;
@@ -253,7 +266,6 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
             break;
 
           case EarthLightMode.fixedCoordinates:
-            // 保持原样
             double latRad = widget.controller.fixedLightLat * math.pi / 180.0;
             double lonRad =
                 (widget.controller.fixedLightLon + 90.0) * math.pi / 180.0;
@@ -265,28 +277,15 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
             break;
 
           case EarthLightMode.followCamera:
-            // [关键修改] 光源不再完全跟随相机 (0, 0, -1)
-            // 为了产生立体感，将光源移至相机视角的 "左上角"
-            // 相机空间坐标:
-            // x: -1.0 (左)
-            // y:  1.0 (上)
-            // z: -0.5 (稍微靠前，不用完全平行，增加深度)
-            //
-            // 这样光线从左上方打下来，右下角会有阴影。
-
             final double yaw = -widget.controller.offset.dx / 200.0;
             final double pitch = widget.controller.offset.dy / 200.0;
-
-            // 调用旋转函数，确保光照向量跟随相机一起旋转
             var (rx, ry, rz) = _rotateVector(-1.5, 1.5, -1.0, pitch, yaw);
-
             lx = rx;
             ly = ry;
             lz = rz;
             break;
         }
 
-        // 归一化
         double len = math.sqrt(lx * lx + ly * ly + lz * lz);
         if (len > 0) {
           lx /= len;
@@ -308,6 +307,9 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
                     painter: EarthShaderPainter(
                       program: _program!,
                       texture: _textureImage!,
+                      // [新增] 传递夜景纹理和标志
+                      nightTexture: _nightTextureImage,
+                      hasNightTexture: _nightTextureImage != null,
                       resolution: size,
                       offset: widget.controller.offset,
                       zoom: widget.controller.zoom,
