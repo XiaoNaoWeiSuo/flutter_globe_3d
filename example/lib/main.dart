@@ -32,11 +32,11 @@ class _MyEarthPageState extends State<MyEarthPage> {
   final Color colorRoute = Colors.orangeAccent;
   final Color colorLongHaul = Colors.purpleAccent;
   final Color colorLocal = Colors.white38;
-  
+
   // 初始光源坐标设为拉萨
   double _fixedLat = 29.65;
   double _fixedLon = 91.11;
-  
+
   @override
   void initState() {
     super.initState();
@@ -48,14 +48,14 @@ class _MyEarthPageState extends State<MyEarthPage> {
     _controller.rotateSpeed = 0.5;
     _controller.enableAutoRotate = false;
     _controller.minZoom = 0.1; // 允许缩放得很小以查看全貌
-    
+
     // 设置光源模式为固定坐标，并指向拉萨
     _controller.setLightMode(EarthLightMode.fixedCoordinates);
     _controller.setFixedLightCoordinates(_fixedLat, _fixedLon);
-    
+
     // 注意：这里设置的焦点会被 Earth3D widget 的 initialLatitude/initialLongitude 参数覆盖
     // 这里保持一致性也设置为上海
-    _controller.setCameraFocus(31.23, 121.47); 
+    _controller.setCameraFocus(31.23, 121.47);
 
     // 2. 全球城市数据 (覆盖各大洲、极端经纬度)
     final cities = [
@@ -66,8 +66,12 @@ class _MyEarthPageState extends State<MyEarthPage> {
       {'id': 'sg', 'lat': 1.35, 'lon': 103.82, 'name': '新加坡'}, // 赤道附近
       {'id': 'dxb', 'lat': 25.20, 'lon': 55.27, 'name': '迪拜'},
       {'id': 'nd', 'lat': 28.61, 'lon': 77.20, 'name': '新德里'},
-      {'id': 'lhasa', 'lat': 29.65, 'lon': 91.11, 'name': '拉萨'}, // 添加拉萨节点以便观察光源直射点
-
+      {
+        'id': 'lhasa',
+        'lat': 29.65,
+        'lon': 91.11,
+        'name': '拉萨',
+      }, // 添加拉萨节点以便观察光源直射点
       // --- 欧洲 ---
       {'id': 'ld', 'lat': 51.50, 'lon': -0.12, 'name': '伦敦'}, // 本初子午线
       {'id': 'pa', 'lat': 48.85, 'lon': 2.35, 'name': '巴黎'},

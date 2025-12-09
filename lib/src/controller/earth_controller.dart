@@ -7,10 +7,10 @@ import '../models/earth_node.dart';
 enum EarthLightMode {
   /// 跟随相机（光源位于相机左上角，增强立体感）
   followCamera,
-  
+
   /// 真实世界时间（根据 UTC 时间计算太阳直射点，模拟昼夜交替）
   realTime,
-  
+
   /// 固定经纬度（光源固定在地球某个特定的经纬度上）
   fixedCoordinates,
 }
@@ -26,7 +26,7 @@ class EarthController extends ChangeNotifier {
 
   // --- 新增光源控制参数 ---
   EarthLightMode _lightMode = EarthLightMode.realTime;
-  
+
   // 固定光源的经纬度 (默认为 (0,0))
   double _fixedLightLat = 0.0;
   double _fixedLightLon = 0.0;
@@ -45,7 +45,7 @@ class EarthController extends ChangeNotifier {
   final Map<String, Offset> projectedPositions = {};
   final Map<String, bool> nodeVisibility = {};
   final Map<EarthConnection, Path> _connectionPaths = {};
-  
+
   List<EarthNode> get nodes => _nodes;
   List<EarthConnection> get connections => _connections;
   Map<EarthConnection, Path> get connectionPaths => _connectionPaths;
@@ -77,15 +77,15 @@ class EarthController extends ChangeNotifier {
     // 我们需要 yaw 对应经度。
     // 根据纹理映射和 Node 计算逻辑，经度 0 对应纹理的 90W (-90)，
     // 所以需要 +90 度修正，才能让相机正对目标经度。
-    
+
     double radLat = lat * math.pi / 180.0;
-    
+
     // [关键修正] 增加 90 度偏移，与 Node/Light 逻辑对齐
     double radLon = (lon + 90.0) * math.pi / 180.0;
 
     // 计算对应的 Offset
     // targetDx = -yaw * 200.0
-    double targetDx = -radLon * 200.0; 
+    double targetDx = -radLon * 200.0;
     double targetDy = radLat * 200.0;
 
     // 限制纬度范围，防止相机翻转
@@ -99,11 +99,24 @@ class EarthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addNode(EarthNode node) { _nodes.add(node); notifyListeners(); }
-  void connect(EarthConnection connection) { _connections.add(connection); notifyListeners(); }
-  void setZoom(double z) { if (lockZoom) return; _zoom = z.clamp(minZoom, maxZoom); notifyListeners(); }
+  void addNode(EarthNode node) {
+    _nodes.add(node);
+    notifyListeners();
+  }
+
+  void connect(EarthConnection connection) {
+    _connections.add(connection);
+    notifyListeners();
+  }
+
+  void setZoom(double z) {
+    if (lockZoom) return;
+    _zoom = z.clamp(minZoom, maxZoom);
+    notifyListeners();
+  }
+
   void setOffset(Offset o) {
-     double newX = o.dx;
+    double newX = o.dx;
     double newY = o.dy;
     if (lockNorthSouth) {
       newY = 0;
@@ -115,26 +128,26 @@ class EarthController extends ChangeNotifier {
   }
 
   void updateProjections(Size screenSize, double scale, double renderTime) {
-      projectedPositions.clear();
-      nodeVisibility.clear();
-      _connectionPaths.clear();
+    projectedPositions.clear();
+    nodeVisibility.clear();
+    _connectionPaths.clear();
 
-      final double camDist = 5.0 / math.max(_zoom, 0.01);
-      final double yaw = -_offset.dx / 200.0;
-      final double pitch = _offset.dy / 200.0;
+    final double camDist = 5.0 / math.max(_zoom, 0.01);
+    final double yaw = -_offset.dx / 200.0;
+    final double pitch = _offset.dy / 200.0;
 
-      final double sphereRadius = scale * 0.5;
+    final double sphereRadius = scale * 0.5;
 
-      _Vector3 ro = _Vector3(0, 0, -camDist);
-      ro = ro.rotateX(pitch).rotateY(yaw);
-      
-      _Vector3 target = _Vector3(0, 0, 0);
-      _Vector3 fwd = (target - ro).normalize();
-      _Vector3 upWorld = _Vector3(0, 1, 0);
-      _Vector3 right = upWorld.cross(fwd).normalize();
-      _Vector3 up = fwd.cross(right);
-      
-      final Map<String, _Vector3> node3DPos = {};
+    _Vector3 ro = _Vector3(0, 0, -camDist);
+    ro = ro.rotateX(pitch).rotateY(yaw);
+
+    _Vector3 target = _Vector3(0, 0, 0);
+    _Vector3 fwd = (target - ro).normalize();
+    _Vector3 upWorld = _Vector3(0, 1, 0);
+    _Vector3 right = upWorld.cross(fwd).normalize();
+    _Vector3 up = fwd.cross(right);
+
+    final Map<String, _Vector3> node3DPos = {};
 
     for (var node in _nodes) {
       double radLat = node.latitude * math.pi / 180.0;
@@ -164,15 +177,15 @@ class EarthController extends ChangeNotifier {
         nodeVisibility[node.id] = false;
       }
     }
-    
-     for (var conn in _connections) {
-          final p1 = node3DPos[conn.fromId];
+
+    for (var conn in _connections) {
+      final p1 = node3DPos[conn.fromId];
       final p2 = node3DPos[conn.toId];
       if (p1 == null || p2 == null) continue;
       double dist = (p1 - p2).length;
       _Vector3 mid = (p1 + p2) * 0.5;
       double archFactor = 1.0 + dist / sphereRadius * 0.8;
-      if (mid.length < 0.001) mid = p1; 
+      if (mid.length < 0.001) mid = p1;
       _Vector3 control = mid.normalize() * (sphereRadius * archFactor);
 
       Path path = Path();
@@ -186,7 +199,7 @@ class EarthController extends ChangeNotifier {
         double c = t * t;
         _Vector3 pCurve = p1 * a + control * b + p2 * c;
         if (_isOccluded(pCurve, ro, sphereRadius)) {
-          isFirstPoint = true; 
+          isFirstPoint = true;
           continue;
         }
         Offset? sPos = _project3DPoint(pCurve, ro, fwd, right, up, screenSize);
@@ -202,10 +215,10 @@ class EarthController extends ChangeNotifier {
         }
       }
       _connectionPaths[conn] = path;
-     }
+    }
   }
-  
-    Offset? _project3DPoint(
+
+  Offset? _project3DPoint(
     _Vector3 p,
     _Vector3 ro,
     _Vector3 fwd,
@@ -215,29 +228,29 @@ class EarthController extends ChangeNotifier {
   ) {
     _Vector3 pRel = p - ro;
     double dist = pRel.dot(fwd);
-    if (dist <= 0) return null; 
+    if (dist <= 0) return null;
     double u = pRel.dot(right) / dist;
     double v = pRel.dot(up) / dist;
     double x = (u * size.height) + size.width / 2;
-    double y = size.height / 2 - (v * size.height); 
+    double y = size.height / 2 - (v * size.height);
     return Offset(x, y);
   }
-  
-   bool _isOccluded(_Vector3 p, _Vector3 ro, double radius) {
+
+  bool _isOccluded(_Vector3 p, _Vector3 ro, double radius) {
     _Vector3 dir = p - ro;
     double distToPoint = dir.length;
     dir = dir.normalize();
-    _Vector3 L = _Vector3(0, 0, 0) - ro; 
+    _Vector3 L = _Vector3(0, 0, 0) - ro;
     double tca = L.dot(dir);
-    if (tca < 0) return false; 
+    if (tca < 0) return false;
     double d2 = L.dot(L) - tca * tca;
     if (d2 > radius * radius - 0.01) {
-      return false; 
+      return false;
     }
     double thc = math.sqrt(radius * radius - d2);
     double t0 = tca - thc;
     if (t0 > 0.1 && t0 < distToPoint - 0.1) {
-      return true; 
+      return true;
     }
     return false;
   }
@@ -250,17 +263,20 @@ class _Vector3 {
   _Vector3 operator -(_Vector3 o) => _Vector3(x - o.x, y - o.y, z - o.z);
   _Vector3 operator *(double s) => _Vector3(x * s, y * s, z * s);
   double dot(_Vector3 o) => x * o.x + y * o.y + z * o.z;
-  _Vector3 cross(_Vector3 o) => _Vector3(y * o.z - z * o.y, z * o.x - x * o.z, x * o.y - y * o.x);
+  _Vector3 cross(_Vector3 o) =>
+      _Vector3(y * o.z - z * o.y, z * o.x - x * o.z, x * o.y - y * o.x);
   double get length => math.sqrt(x * x + y * y + z * z);
   _Vector3 normalize() {
     double l = length;
     return l == 0 ? this : _Vector3(x / l, y / l, z / l);
   }
+
   _Vector3 rotateX(double angle) {
     double c = math.cos(angle);
     double s = math.sin(angle);
     return _Vector3(x, y * c - z * s, y * s + z * c);
   }
+
   _Vector3 rotateY(double angle) {
     double c = math.cos(angle);
     double s = math.sin(angle);

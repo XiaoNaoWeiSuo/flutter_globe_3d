@@ -10,7 +10,7 @@ class EarthShaderPainter extends CustomPainter {
   final double zoom;
   final double time;
   final double scale;
-  
+
   // [修改] 接收光照方向向量 (x, y, z)
   final double lightDirX;
   final double lightDirY;
@@ -41,12 +41,12 @@ class EarthShaderPainter extends CustomPainter {
     shader.setFloat(4, zoom);
     shader.setFloat(5, time);
     shader.setFloat(6, scale);
-    
+
     // [修改] 传递 vec3 uLightDir (index 7, 8, 9)
     shader.setFloat(7, lightDirX);
     shader.setFloat(8, lightDirY);
     shader.setFloat(9, lightDirZ);
-    
+
     // Sampler 索引不变 (0)
     shader.setImageSampler(0, texture);
     canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
@@ -64,8 +64,8 @@ class LinesPainter extends CustomPainter {
   LinesPainter({required this.controller, required this.time});
   @override
   void paint(Canvas canvas, Size size) {
-      // 保持原样
-       final paint = Paint()
+    // 保持原样
+    final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
@@ -87,9 +87,11 @@ class LinesPainter extends CustomPainter {
       }
     }
   }
-   void _drawDashedPath(Canvas canvas, Path originalPath, Paint paint, double time) {
-       // 保持原样
-        const double dashWidth = 5;
+
+  void _drawDashedPath(
+      Canvas canvas, Path originalPath, Paint paint, double time) {
+    // 保持原样
+    const double dashWidth = 5;
     const double dashSpace = 5;
     final double phase = (time * 20) % (dashWidth + dashSpace);
 
@@ -112,10 +114,11 @@ class LinesPainter extends CustomPainter {
         distance += dashWidth + dashSpace;
       }
     }
-   }
-   void _drawArrowOnPath(Canvas canvas, Path path, Color color) {
-       // 保持原样
-           final ui.PathMetrics metrics = path.computeMetrics();
+  }
+
+  void _drawArrowOnPath(Canvas canvas, Path path, Color color) {
+    // 保持原样
+    final ui.PathMetrics metrics = path.computeMetrics();
     for (ui.PathMetric metric in metrics) {
       if (metric.length == 0) continue;
       // 在路径的 66% 处获取位置和切线
@@ -147,7 +150,8 @@ class LinesPainter extends CustomPainter {
         );
       }
     }
-   }
+  }
+
   @override
   bool shouldRepaint(covariant LinesPainter old) => true;
 }
