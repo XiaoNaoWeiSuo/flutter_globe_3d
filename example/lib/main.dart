@@ -1,3 +1,4 @@
+import 'package:example/other_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_globe_3d/flutter_globe_3d.dart';
 
@@ -10,8 +11,9 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [Earth3D.routeObserver],
       home: MyEarthPage(),
     );
   }
@@ -45,8 +47,8 @@ class _MyEarthPageState extends State<MyEarthPage> {
 
   void _initEarthData() {
     // 1. 基础配置
-    _controller.rotateSpeed = 0.5;
-    _controller.enableAutoRotate = false;
+    _controller.rotateSpeed = 18;
+    _controller.enableAutoRotate = true;
     _controller.minZoom = 0.1; // 允许缩放得很小以查看全貌
 
     // 设置光源模式为固定坐标，并指向拉萨
@@ -272,6 +274,7 @@ class _MyEarthPageState extends State<MyEarthPage> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _buildModeButton("跟随相机", EarthLightMode.followCamera),
                           const SizedBox(width: 10),
@@ -313,6 +316,25 @@ class _MyEarthPageState extends State<MyEarthPage> {
                         }
                         return const SizedBox.shrink();
                       },
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return const OtherPage();
+                            },
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        width: 100,
+                        height: 40,
+                        color: Colors.blueAccent,
+                        child: Text("测试"),
+                      ),
                     ),
                   ],
                 ),

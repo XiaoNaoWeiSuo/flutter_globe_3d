@@ -6,7 +6,14 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_globe_3d/src/controller/earth_controller.dart';
 import 'package:flutter_globe_3d/src/painter/earth_painter.dart';
 
+/// 3D 地球组件
 class Earth3D extends StatefulWidget {
+  /// 全局路由观察者
+  /// 请务必在 MaterialApp 的 navigatorObservers 中注册此对象：
+  /// `navigatorObservers: [Earth3D.routeObserver]`
+  static final RouteObserver<ModalRoute<dynamic>> routeObserver =
+      RouteObserver<ModalRoute<dynamic>>();
+
   final String shaderAsset;
   final ImageProvider texture;
   final ImageProvider? nightTexture; // [新增] 夜景纹理参数
@@ -35,7 +42,8 @@ class Earth3D extends StatefulWidget {
   State<Earth3D> createState() => _Earth3DState();
 }
 
-class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
+class _Earth3DState extends State<Earth3D>
+    with TickerProviderStateMixin, WidgetsBindingObserver, RouteAware {
   ui.FragmentProgram? _program;
   ui.Image? _textureImage;
   ui.Image? _nightTextureImage; // [新增] 夜景纹理对象
@@ -48,9 +56,16 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
   Animation<Offset>? _offsetAnimation;
   Timer? _resetTimer;
 
+  // --- 性能优化状态标志 ---
+  bool _isAppResumed = true; // App 是否在前台
+  bool _isRouteVisible = true; // 当前页面是否可见（未被其他页面覆盖）
+
   @override
   void initState() {
     super.initState();
+    // 1. 注册 App 生命周期监听
+    WidgetsBinding.instance.addObserver(this);
+
     _loadResources();
     widget.controller.addListener(_onControllerUpdate);
 
@@ -83,20 +98,91 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
         _time = dt;
       });
     });
-    _ticker.start();
+
+    // 初始启动检查
+    _checkAnimationStatus();
   }
 
-  void _onControllerUpdate() {
-    if (mounted) setState(() {});
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 2. 注册路由监听 (用于检测页面切换)
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      Earth3D.routeObserver.subscribe(this, route);
+    }
   }
 
   @override
   void dispose() {
+    // 清理监听器
+    WidgetsBinding.instance.removeObserver(this);
+    Earth3D.routeObserver.unsubscribe(this);
+
     _ticker.dispose();
     _animationController.dispose();
     _resetTimer?.cancel();
     widget.controller.removeListener(_onControllerUpdate);
     super.dispose();
+  }
+
+  // --- 核心优化逻辑：智能控制动画启停 ---
+
+  /// 根据当前 App 和 路由的状态，决定是否暂停 Ticker
+  void _checkAnimationStatus() {
+    // 只有当 App 在前台 且 页面可见 且 组件挂载中 时，才运行动画
+    bool shouldAnimate = _isAppResumed && _isRouteVisible && mounted;
+
+    if (shouldAnimate) {
+      if (!_ticker.isTicking) {
+        _ticker.start();
+        debugPrint("Earth3D: Animation Resumed (Visible)");
+      }
+    } else {
+      if (_ticker.isTicking) {
+        _ticker.stop();
+        debugPrint("Earth3D: Animation Paused (Hidden/Background)");
+      }
+    }
+  }
+
+  // 1. App 生命周期回调 (Home 键/切后台)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isAppResumed = state == AppLifecycleState.resumed;
+    _checkAnimationStatus();
+  }
+
+  // 2. RouteAware 回调 (页面导航)
+
+  @override
+  void didPushNext() {
+    // 当进入下一个页面，当前页面被覆盖 -> 暂停
+    _isRouteVisible = false;
+    _checkAnimationStatus();
+  }
+
+  @override
+  void didPopNext() {
+    // 当上一个页面被 pop，当前页面重新显示 -> 恢复
+    _isRouteVisible = true;
+    _checkAnimationStatus();
+  }
+
+  @override
+  void didPop() {
+    // 当前页面被 pop -> 暂停 (随后会 dispose)
+    _isRouteVisible = false;
+    _checkAnimationStatus();
+  }
+
+  // ------------------------------------
+
+  void _onControllerUpdate() {
+    // 如果动画已暂停（不可见），则不响应控制器的重绘请求，节省资源
+    if (mounted && _isAppResumed && _isRouteVisible) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadResources() async {
@@ -241,6 +327,11 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
       );
     }
 
+    // 如果不可见，直接返回占位，或者返回 RepaintBoundary 缓存的图像（这里为了简化直接渲染，但 Ticker 已停）
+    // 注意：即使 Ticker 停了，build 仍可能被父组件触发。
+    // 为了极致优化，这里可以判断是否可见，不可见时返回 SizedBox()
+    // 但为了避免恢复时黑屏闪烁，我们保留渲染结构，依靠停止 Ticker 来停止 GPU 刷新。
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = widget.size?.width ?? constraints.maxWidth;
@@ -249,7 +340,10 @@ class _Earth3DState extends State<Earth3D> with TickerProviderStateMixin {
         final size = Size(w, h);
         double shaderScale = (w / h) * widget.initialScale;
 
-        widget.controller.updateProjections(size, shaderScale, _time);
+        // 仅在可见时更新投影计算
+        if (_isRouteVisible && _isAppResumed) {
+          widget.controller.updateProjections(size, shaderScale, _time);
+        }
 
         // --- 计算光照向量 ---
         double lx = 0, ly = 0, lz = 1.0;

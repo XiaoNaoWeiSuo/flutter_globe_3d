@@ -1,3 +1,9 @@
+## 2.2.5
+
+* 新增功能
+
+* MaterialApp， navigatorObservers: [Earth3D.routeObserver],加上这句，就可以自动处理启动和暂停
+
 ## 2.2.4
 
 * 新增功能
