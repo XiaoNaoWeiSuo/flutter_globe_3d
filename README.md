@@ -7,6 +7,60 @@ High-performance interactive 3D spheres for Flutter. A GPU fragment shader draws
 
 Version 3.0 is a deliberate breaking redesign. The package name remains `flutter_globe_3d`, while the public API is now consistently `Sphere*`. Existing 2.x applications can stay on their current version until they migrate.
 
+## Showcase
+
+<p align="center">
+  <a href="https://github.com/user-attachments/assets/8df80385-8cef-44c3-b6f9-4d13accf6c73">
+    <img src="https://github.com/user-attachments/assets/8df80385-8cef-44c3-b6f9-4d13accf6c73" width="720" alt="Seven sphere showcase" />
+  </a>
+  <br />
+  <sub>Seven spheres rendered by the example app with the public 3.0 API.</sub>
+</p>
+
+<p>
+  <img src="https://github.com/user-attachments/assets/42879e6b-a656-4f0e-bf06-86282ec767b1" width="300" align="right" hspace="24" vspace="8" alt="Live network tour" />
+</p>
+
+### Live network tour
+
+The network scene combines geographic nodes with stable-ID spherical connections. Animated dashes and direction arrows show flow while the camera moves between targets with awaitable focus commands. Each label remains a normal interactive Flutter widget, so its callback can update application state or start another camera operation.
+
+- Surface nodes keep their geographic anchors during camera motion.
+- Connections are keyed by ID so unchanged curves can be reused.
+- Camera commands report completion, cancellation and interruption explicitly.
+
+<br clear="all" />
+
+<p>
+  <img src="https://github.com/user-attachments/assets/a5c577a2-7b36-436b-87a9-6aad66d55d7e" width="300" align="left" hspace="24" vspace="8" alt="Layout and light" />
+</p>
+
+### Layout and light
+
+This scene shows the three node placements together: surface markers, side annotations and dense corner annotations. The geographic anchor stays on the sphere while the label is packed outside it. Leader lines route around neighboring labels, automatic side selection has hysteresis, and low-priority labels yield when a viewport is crowded.
+
+- `SphereLighting` supports camera-following, solar-time and fixed-coordinate modes.
+- `SphereGlow` can be automatic, custom or disabled.
+- Layout and material changes apply without replacing the controller.
+
+<br clear="all" />
+
+<p>
+  <img src="https://github.com/user-attachments/assets/6248bfe7-fe78-410f-970c-f4d774c9e741" width="300" align="right" hspace="24" vspace="8" alt="Sphere toolkit" />
+</p>
+
+### Sphere toolkit
+
+The toolkit scene exercises the reusable sphere surface itself: live equirectangular texture replacement, four quality presets, bounded zoom, explicit spin lifecycle, camera poses and the 60° upper-left view. The same mounted view keeps its camera and scene state while texture, lighting and presentation settings change.
+
+- `SphereView.earth()` supplies the bundled day and night textures.
+- `SphereView(texture: ...)` supports planets, sports balls, expressions and materials.
+- `SphereController.camera` and `.spin` keep animation state explicit and observable.
+
+<br clear="all" />
+
+These animations and the collage are captures from the real example app. See [demo asset details](doc/guides/demo-assets.md) and [texture source credits](example/assets/textures/SOURCES.md).
+
 ## Install
 
 ```yaml
