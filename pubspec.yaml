@@ -1,8 +1,12 @@
 name: flutter_globe_3d
 description: "High-performance interactive 3D sphere rendering for Flutter, with shader materials, camera poses, annotations and connections."
-version: 3.0.1
+version: 3.0.1+1
 homepage: https://github.com/XiaoNaoWeiSuo/flutter_globe_3d
 repository: https://github.com/XiaoNaoWeiSuo/flutter_globe_3d
+
+screenshots:
+  - description: "Seven-sphere showcase with textures, nodes and connections"
+    path: assets/showcase/seven-spheres-1-2-4-ultra.png
 
 environment:
   sdk: ^3.0.0

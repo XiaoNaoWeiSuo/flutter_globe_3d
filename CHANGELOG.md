@@ -1,3 +1,8 @@
+## 3.0.1+1
+
+- Added the seven-sphere showcase image to package metadata for pub.dev search and package discovery.
+- Restored the README showcase with the static collage, three animated demos and spaced feature descriptions.
+
 ## 3.0.0
 
 ### Breaking changes
