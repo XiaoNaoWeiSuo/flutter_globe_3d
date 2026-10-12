@@ -3,16 +3,20 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-/// `UnifiedShaderCanvas` 是一个通用的 Flutter widget，用于加载和渲染片段着色器。
-/// 它处理布局约束、手势交互（平移、缩放）并将标准化的 Uniform 变量传递给着色器。
+/// Loads and renders a fragment shader with a simple pan/zoom interaction.
+///
+/// The shader receives resolution, pixel offset, zoom, and elapsed time as
+/// uniforms at indices 0 through 5 respectively. Infinite layout constraints
+/// fall back to a 300-pixel dimension (or a square when only height is
+/// unbounded). The ticker runs continuously while mounted.
 class UnifiedShaderCanvas extends StatefulWidget {
-  /// Shader 文件路径，必须在 `pubspec.yaml` 中声明。
+  /// Shader asset path resolvable by `FragmentProgram.fromAsset`.
   final String shaderAssetPath;
 
-  /// 初始缩放比例。默认为 `1.0`。
+  /// Initial zoom, clamped to the range 0.1 through 10 during interaction.
   final double initialZoom;
 
-  /// 构造函数，用于创建 `UnifiedShaderCanvas` 实例。
+  /// Creates a canvas for [shaderAssetPath].
   const UnifiedShaderCanvas({
     super.key,
     required this.shaderAssetPath,

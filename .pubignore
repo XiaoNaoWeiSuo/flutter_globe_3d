@@ -1,0 +1,6 @@
+# README render outputs are kept in the repository for maintainers but are not
+# needed by applications that depend on this package.
+/example/assets/showcase/
+/build/
+/example/build/
+/example/recordings/

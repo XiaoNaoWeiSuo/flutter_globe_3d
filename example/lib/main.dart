@@ -1,399 +1,623 @@
-import 'package:example/other_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_globe_3d/flutter_globe_3d.dart';
+import 'demo_studio.dart';
+import 'texture_gallery.dart';
 
-void main() {
-  runApp(const MainApp());
+void main() => runApp(const SphereExampleApp());
+
+const _ink = Color(0xFF07111D);
+const _panelColor = Color(0xFF10202F);
+const _cyan = Color(0xFF55D6D2);
+const _cities = <_City>[
+  _City('Shanghai', 31.2304, 121.4737),
+  _City('Tokyo', 35.6762, 139.6503),
+  _City('Singapore', 1.3521, 103.8198),
+  _City('London', 51.5072, -0.1276),
+  _City('New York', 40.7128, -74.0060),
+  _City('Sydney', -33.8688, 151.2093),
+  _City('Cape Town', -33.9249, 18.4241),
+];
+const _textures = <_TextureOption>[
+  _TextureOption('Earth', null),
+  _TextureOption('Smile Ball', 'assets/textures/smile.png'),
+  _TextureOption('Basketball', 'assets/textures/basketball.png'),
+  _TextureOption('Soccer Ball', 'assets/textures/soccer.png'),
+  _TextureOption('8-Ball', 'assets/textures/billiard.png'),
+  _TextureOption('Marble', 'assets/textures/marble.jpg'),
+  _TextureOption('UV Checker', 'assets/textures/uv_checker.png'),
+];
+
+class _City {
+  final String name;
+  final double latitude;
+  final double longitude;
+  const _City(this.name, this.latitude, this.longitude);
+
+  SphereCoordinate get coordinate =>
+      SphereCoordinate(latitude: latitude, longitude: longitude);
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class _TextureOption {
+  final String name;
+  final String? asset;
+  const _TextureOption(this.name, this.asset);
+}
+
+class SphereExampleApp extends StatelessWidget {
+  const SphereExampleApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      navigatorObservers: [Earth3D.routeObserver],
-      home: MyEarthPage(),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: ThemeData.dark(useMaterial3: true).copyWith(
+      scaffoldBackgroundColor: _ink,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _cyan,
+        brightness: Brightness.dark,
+      ),
+    ),
+    navigatorObservers: [SphereView.routeObserver],
+    home: const SphereShowcasePage(),
+  );
 }
 
-class MyEarthPage extends StatefulWidget {
-  const MyEarthPage({super.key});
+class SphereShowcasePage extends StatefulWidget {
+  const SphereShowcasePage({super.key});
 
   @override
-  State<MyEarthPage> createState() => _MyEarthPageState();
+  State<SphereShowcasePage> createState() => _SphereShowcasePageState();
 }
 
-class _MyEarthPageState extends State<MyEarthPage> {
-  final EarthController _controller = EarthController();
-
-  // 预定义颜色板
-  final Color colorHub = Colors.cyanAccent;
-  final Color colorRoute = Colors.orangeAccent;
-  final Color colorLongHaul = Colors.purpleAccent;
-  final Color colorLocal = Colors.white38;
-
-  // 初始光源坐标设为拉萨
-  double _fixedLat = 29.65;
-  double _fixedLon = 91.11;
+class _SphereShowcasePageState extends State<SphereShowcasePage> {
+  late final SphereController _controller = SphereController(
+    limits: const SphereCameraLimits(minZoom: 0.65, maxZoom: 3),
+    spinOptions: const SphereSpinOptions(degreesPerSecond: 1.2),
+  );
+  _City _selected = _cities.first;
+  SphereNodePlacement _placement = SphereNodePlacement.annotation;
+  SphereQuality _quality = SphereQuality.medium;
+  SphereLightingMode _lightingMode = SphereLightingMode.followCamera;
+  String _texture = 'Earth';
+  double _zoom = 1;
+  double _tilt = 50;
+  bool _upperLeft = true;
+  bool _rolled = false;
+  bool _spin = true;
+  bool _autoResume = false;
+  bool _customGlow = false;
 
   @override
   void initState() {
     super.initState();
-    _initEarthData();
+    _controller.spin.start();
+    _controller.spin.addListener(_handleSpinChanged);
   }
 
-  void _initEarthData() {
-    // 1. 基础配置
-    _controller.rotateSpeed = 18;
-    _controller.enableAutoRotate = true;
-    _controller.minZoom = 0.1; // 允许缩放得很小以查看全貌
-
-    // 设置光源模式为固定坐标，并指向拉萨
-    _controller.setLightMode(EarthLightMode.fixedCoordinates);
-    _controller.setFixedLightCoordinates(_fixedLat, _fixedLon);
-
-    // 注意：这里设置的焦点会被 Earth3D widget 的 initialLatitude/initialLongitude 参数覆盖
-    // 这里保持一致性也设置为上海
-    _controller.setCameraFocus(31.23, 121.47);
-
-    // 2. 全球城市数据 (覆盖各大洲、极端经纬度)
-    final cities = [
-      // --- 亚洲 ---
-      {'id': 'bj', 'lat': 39.90, 'lon': 116.40, 'name': '北京'},
-      {'id': 'sh', 'lat': 31.23, 'lon': 121.47, 'name': '上海'},
-      {'id': 'tk', 'lat': 35.68, 'lon': 139.69, 'name': '东京'},
-      {'id': 'sg', 'lat': 1.35, 'lon': 103.82, 'name': '新加坡'}, // 赤道附近
-      {'id': 'dxb', 'lat': 25.20, 'lon': 55.27, 'name': '迪拜'},
-      {'id': 'nd', 'lat': 28.61, 'lon': 77.20, 'name': '新德里'},
-      {
-        'id': 'lhasa',
-        'lat': 29.65,
-        'lon': 91.11,
-        'name': '拉萨',
-      }, // 添加拉萨节点以便观察光源直射点
-      // --- 欧洲 ---
-      {'id': 'ld', 'lat': 51.50, 'lon': -0.12, 'name': '伦敦'}, // 本初子午线
-      {'id': 'pa', 'lat': 48.85, 'lon': 2.35, 'name': '巴黎'},
-      {'id': 'mos', 'lat': 55.75, 'lon': 37.61, 'name': '莫斯科'},
-      {'id': 'rey', 'lat': 64.14, 'lon': -21.90, 'name': '雷克雅未克'}, // 高纬度北
-      // --- 北美洲 ---
-      {'id': 'ny', 'lat': 40.71, 'lon': -74.00, 'name': '纽约'},
-      {'id': 'sf', 'lat': 37.77, 'lon': -122.41, 'name': '旧金山'},
-      {'id': 'van', 'lat': 49.28, 'lon': -123.12, 'name': '温哥华'},
-      {'id': 'anc', 'lat': 61.21, 'lon': -149.90, 'name': '安克雷奇'}, // 阿拉斯加
-      // --- 南美洲 ---
-      {'id': 'rio', 'lat': -22.90, 'lon': -43.17, 'name': '里约热内卢'},
-      {'id': 'bsas', 'lat': -34.60, 'lon': -58.38, 'name': '布宜诺斯艾利斯'},
-      {'id': 'ush', 'lat': -54.80, 'lon': -68.30, 'name': '乌斯怀亚'}, // 世界尽头
-      {'id': 'lim', 'lat': -12.04, 'lon': -77.04, 'name': '利马'},
-
-      // --- 非洲 ---
-      {'id': 'ca', 'lat': 30.04, 'lon': 31.23, 'name': '开罗'},
-      {'id': 'cpt', 'lat': -33.92, 'lon': 18.42, 'name': '开普敦'},
-      {'id': 'lag', 'lat': 6.52, 'lon': 3.37, 'name': '拉各斯'},
-      {'id': 'nbi', 'lat': -1.29, 'lon': 36.82, 'name': '内罗毕'},
-
-      // --- 大洋洲 ---
-      {'id': 'sy', 'lat': -33.86, 'lon': 151.20, 'name': '悉尼'},
-      {'id': 'ak', 'lat': -36.84, 'lon': 174.76, 'name': '奥克兰'}, // 接近日界线
-      {'id': 'fiji', 'lat': -17.71, 'lon': 178.06, 'name': '斐济'}, // 东经178
-      // --- 极地/特殊点 ---
-      {'id': 'ant', 'lat': -62.19, 'lon': -58.96, 'name': '长城站'}, // 南极
-      {'id': 'hono', 'lat': 21.30, 'lon': -157.85, 'name': '火奴鲁鲁'}, // 太平洋中心
-    ];
-
-    // 添加节点
-    for (var c in cities) {
-      _controller.addNode(
-        EarthNode(
-          id: c['id'] as String,
-          latitude: c['lat'] as double,
-          longitude: c['lon'] as double,
-          child: _buildLabel(c['name'] as String),
-        ),
-      );
-    }
-
-    // 3. 添加连线 (测试不同场景)
-
-    // --- 场景A: 枢纽辐射 (以迪拜为中心) ---
-    final hubs = ['ld', 'bj', 'cpt', 'ny', 'sy'];
-    for (var target in hubs) {
-      _controller.connect(
-        EarthConnection(
-          fromId: 'dxb',
-          toId: target,
-          color: colorHub,
-          width: 1.5,
-          isDashed: true,
-        ),
-      );
-    }
-
-    // --- 场景B: 环太平洋航线 (跨日界线测试) ---
-    // 悉尼 -> 斐济 -> 火奴鲁鲁 -> 旧金山 -> 东京 -> 悉尼
-    final pacificRoute = ['sy', 'fiji', 'hono', 'sf', 'tk', 'sy'];
-    for (int i = 0; i < pacificRoute.length - 1; i++) {
-      _controller.connect(
-        EarthConnection(
-          fromId: pacificRoute[i],
-          toId: pacificRoute[i + 1],
-          color: Colors.pinkAccent,
-          showArrow: true,
-          width: 2.0,
-        ),
-      );
-    }
-
-    // --- 场景C: 极地航线 (测试高纬度连线) ---
-    // 纽约 -> 伦敦 (北大西洋)
-    _controller.connect(
-      EarthConnection(
-        fromId: 'ny',
-        toId: 'ld',
-        color: Colors.greenAccent,
-        width: 2.0,
-      ),
-    );
-    // 北京 -> 纽约 (跨北极圈，这通常是最短路径)
-    _controller.connect(
-      EarthConnection(
-        fromId: 'bj',
-        toId: 'ny',
-        color: Colors.tealAccent,
-        isDashed: true,
-        width: 1.5,
-      ),
-    );
-
-    // --- 场景D: 纵贯线 (测试南北连接) ---
-    // 开罗 -> 开普敦 (非洲纵贯)
-    _controller.connect(
-      EarthConnection(fromId: 'ca', toId: 'cpt', color: colorRoute),
-    );
-    // 纽约 -> 里约 -> 乌斯怀亚 -> 长城站 (美洲纵贯到南极)
-    _controller.connect(
-      EarthConnection(fromId: 'ny', toId: 'rio', color: colorRoute),
-    );
-    _controller.connect(
-      EarthConnection(fromId: 'rio', toId: 'ush', color: colorRoute),
-    );
-    _controller.connect(
-      EarthConnection(
-        fromId: 'ush',
-        toId: 'ant',
-        color: Colors.blueGrey,
-        isDashed: true,
-      ),
-    );
-
-    // --- 场景E: 丝绸之路 (横贯亚欧) ---
-    // 上海 -> 新加坡 -> 新德里 -> 迪拜 -> 开罗 -> 伦敦
-    final silkRoad = ['sh', 'sg', 'nd', 'dxb', 'ca', 'ld'];
-    for (int i = 0; i < silkRoad.length - 1; i++) {
-      _controller.connect(
-        EarthConnection(
-          fromId: silkRoad[i],
-          toId: silkRoad[i + 1],
-          color: Colors.amber,
-          width: 2.5,
-        ),
-      );
-    }
-  }
-
-  Widget _buildLabel(String text) {
-    return Transform.scale(
-      scale: 0.8,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.black.withAlpha(155),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.white24, width: 0.5),
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            shadows: [Shadow(color: Colors.black, blurRadius: 2)],
-          ),
-        ),
-      ),
-    );
+  void _handleSpinChanged() {
+    final running = _controller.spin.state.running;
+    if (_spin != running && mounted) setState(() => _spin = running);
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body:
-          // 顶部标题
-          Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Text(
-                "GLOBAL NETWORK VISUALIZATION",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  letterSpacing: 3,
-                  fontWeight: FontWeight.bold,
-                ),
+  void dispose() {
+    _controller.spin.removeListener(_handleSpinChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  SphereViewAngle get _viewAngle => _upperLeft
+      ? SphereViewAngle.upperLeft(
+          tiltDegrees: _tilt,
+          rollDegrees: _rolled ? 18 : 0,
+        )
+      : SphereViewAngle.front(rollDegrees: _rolled ? 18 : 0);
+
+  Future<void> _focus(_City city) async {
+    final resume = _autoResume && _controller.spin.state.running;
+    final targetZoom = _zoom < 1.3 ? 2.0 : _zoom;
+    setState(() {
+      _selected = city;
+      _zoom = targetZoom;
+      _spin = false;
+    });
+    final result = await _controller.camera.focus(
+      target: city.coordinate,
+      view: _viewAngle,
+      zoom: targetZoom,
+      duration: const Duration(milliseconds: 950),
+    );
+    if (!mounted) return;
+    if (result == SphereCameraResult.completed && resume && _autoResume) {
+      _controller.spin.start();
+      setState(() => _spin = true);
+    }
+  }
+
+  Future<void> _overview() async {
+    setState(() => _spin = false);
+    await _controller.camera.overview(
+      duration: const Duration(milliseconds: 800),
+    );
+    if (mounted) setState(() => _zoom = 1);
+  }
+
+  List<SphereNode> get _nodes => [
+    for (final city in _cities)
+      switch (_placement) {
+        SphereNodePlacement.surface => SphereNode.surface(
+          id: city.name,
+          coordinate: city.coordinate,
+          child: _cityDot(city),
+        ),
+        SphereNodePlacement.annotation => SphereNode.annotation(
+          id: city.name,
+          coordinate: city.coordinate,
+          style: const SphereAnnotationStyle(maxWidth: 106, priority: 2),
+          child: _cityLabel(city),
+        ),
+        SphereNodePlacement.denseAnnotation => SphereNode.denseAnnotation(
+          id: city.name,
+          coordinate: city.coordinate,
+          style: const SphereAnnotationStyle(maxWidth: 106, priority: 2),
+          child: _cityLabel(city),
+        ),
+      },
+  ];
+
+  Widget _cityDot(_City city) => Tooltip(
+    message: city.name,
+    child: InkWell(
+      onTap: () => _focus(city),
+      child: Container(
+        width: 13,
+        height: 13,
+        decoration: BoxDecoration(
+          color: _cyan,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: const [BoxShadow(color: _cyan, blurRadius: 8)],
+        ),
+      ),
+    ),
+  );
+
+  Widget _cityLabel(_City city) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      key: ValueKey('city-${city.name}'),
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => _focus(city),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        decoration: BoxDecoration(
+          color: _panelColor.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _cyan.withValues(alpha: 0.45)),
+        ),
+        child: Text(city.name, style: const TextStyle(fontSize: 11)),
+      ),
+    ),
+  );
+
+  List<SphereConnection> get _connections => [
+    for (var i = 0; i < _cities.length - 1; i++)
+      SphereConnection(
+        id: 'route-$i',
+        fromId: _cities[i].name,
+        toId: _cities[i + 1].name,
+        color: _cyan.withValues(alpha: 0.8),
+        width: 1.3,
+        isDashed: i.isOdd,
+        showArrow: i == 0,
+      ),
+  ];
+
+  ImageProvider get _textureProvider {
+    final option = _textures.firstWhere((value) => value.name == _texture);
+    if (option.asset case final asset?) return AssetImage(asset);
+    return const AssetImage(
+      'packages/flutter_globe_3d/assets/images/earth.jpg',
+    );
+  }
+
+  Widget _buildSphere() => Stack(
+    fit: StackFit.expand,
+    children: [
+      SphereView(
+        texture: _textureProvider,
+        nightTexture: _texture == 'Earth'
+            ? const AssetImage(
+                'packages/flutter_globe_3d/assets/images/earth_night.jpg',
+              )
+            : null,
+        controller: _controller,
+        diameterFactor: 0.94,
+        quality: _quality,
+        lighting: _lightingMode == SphereLightingMode.fixed
+            ? const SphereLighting.fixed(
+                coordinate: SphereCoordinate(latitude: 18, longitude: -35),
+              )
+            : switch (_lightingMode) {
+                SphereLightingMode.followCamera =>
+                  const SphereLighting.followCamera(),
+                SphereLightingMode.solarTime =>
+                  const SphereLighting.solarTime(),
+                SphereLightingMode.fixed => const SphereLighting.followCamera(),
+              },
+        glow: _customGlow
+            ? const SphereGlow.custom(
+                color: Color(0xFF55D6D2),
+                width: 0.42,
+                intensity: 0.72,
+              )
+            : const SphereGlow.automatic(),
+        gestures: const SphereGestureOptions(
+          resumeAfterGesture: false,
+          inertiaEnabled: true,
+        ),
+        annotationLayout: const SphereAnnotationLayout(
+          padding: EdgeInsets.fromLTRB(8, 38, 8, 26),
+        ),
+        nodes: _nodes,
+        connections: _connections,
+      ),
+      const IgnorePointer(
+        child: Center(child: Icon(Icons.add, color: Colors.white38)),
+      ),
+      Positioned(
+        left: 8,
+        right: 8,
+        bottom: 4,
+        child: AnimatedBuilder(
+          animation: _controller.camera,
+          builder: (context, _) => IgnorePointer(
+            child: Text(
+              '${_selected.name} · ${_controller.camera.zoom.toStringAsFixed(2)}× · ${_controller.camera.isAnimating ? 'animating' : 'ready'}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white70,
+                shadows: [Shadow(blurRadius: 6, color: Colors.black)],
               ),
-              Center(
-                child: Earth3D(
-                  controller: _controller,
-                  initialScale: 3,
-                  // nightTexture: null,
-                  // 初始相机瞄准上海 (31.23, 121.47)
-                  initialLatitude: 31.23,
-                  initialLongitude: 121.47,
-                  // 让地球撑满宽度，高度自动适配
-                  size: const Size(400, 400),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(16),
-                color: Colors.grey[900],
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      "光源模式 (Light Mode):",
-                      style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      ),
+      Positioned(
+        top: 8,
+        right: 8,
+        child: IconButton.filledTonal(
+          tooltip: 'Overview',
+          onPressed: _overview,
+          icon: const Icon(Icons.center_focus_strong),
+        ),
+      ),
+    ],
+  );
+
+  Widget _panel({required String title, required Widget child}) => Material(
+    color: _panelColor,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 9),
+          child,
+        ],
+      ),
+    ),
+  );
+
+  Widget _buildControls() => ListView(
+    padding: const EdgeInsets.only(bottom: 12),
+    children: [
+      _panel(
+        title: 'Camera · geographic pose',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final city in _cities)
+                  ActionChip(
+                    label: Text(city.name),
+                    onPressed: () => _focus(city),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: false, label: Text('Front')),
+                ButtonSegment(value: true, label: Text('Upper-left')),
+              ],
+              selected: {_upperLeft},
+              onSelectionChanged: (values) =>
+                  setState(() => _upperLeft = values.first),
+            ),
+            if (_upperLeft)
+              Row(
+                children: [
+                  const Text('Tilt'),
+                  Expanded(
+                    child: Slider(
+                      min: 0,
+                      max: 80,
+                      divisions: 16,
+                      value: _tilt,
+                      label: '${_tilt.round()}°',
+                      onChanged: (value) => setState(() => _tilt = value),
                     ),
-                    const SizedBox(height: 8),
-                    // 模式切换按钮
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  ),
+                  Text('${_tilt.round()}°'),
+                ],
+              ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Screen roll'),
+              value: _rolled,
+              onChanged: (value) => setState(() => _rolled = value),
+            ),
+            Row(
+              children: [
+                const Text('Zoom'),
+                Expanded(
+                  child: Slider(
+                    min: 0.65,
+                    max: 3,
+                    value: _zoom,
+                    label: '${_zoom.toStringAsFixed(1)}×',
+                    onChanged: (value) {
+                      setState(() => _zoom = value);
+                      _controller.camera.setZoom(value);
+                    },
+                  ),
+                ),
+                Text('${_zoom.toStringAsFixed(1)}×'),
+              ],
+            ),
+            Wrap(
+              spacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _overview,
+                  icon: const Icon(Icons.public),
+                  label: const Text('Overview'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => _controller.camera.cancel(),
+                  icon: const Icon(Icons.stop_circle_outlined),
+                  label: const Text('Cancel'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 8),
+      _panel(
+        title: 'Scene · nodes and connections',
+        child: Column(
+          children: [
+            SegmentedButton<SphereNodePlacement>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(
+                  value: SphereNodePlacement.surface,
+                  label: Text('Surface'),
+                ),
+                ButtonSegment(
+                  value: SphereNodePlacement.annotation,
+                  label: Text('Side labels'),
+                ),
+                ButtonSegment(
+                  value: SphereNodePlacement.denseAnnotation,
+                  label: Text('Dense'),
+                ),
+              ],
+              selected: {_placement},
+              onSelectionChanged: (values) =>
+                  setState(() => _placement = values.first),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Stable node IDs · interactive Flutter children · keyed arc cache',
+              style: TextStyle(fontSize: 11, color: Colors.white60),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 8),
+      _panel(
+        title: 'Spin · explicit lifecycle',
+        child: Column(
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Automatic spin · 1.2°/s'),
+              value: _spin,
+              onChanged: (value) {
+                setState(() => _spin = value);
+                value ? _controller.spin.start() : _controller.spin.stop();
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Auto-resume after completed focus'),
+              value: _autoResume,
+              onChanged: (value) => setState(() => _autoResume = value),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 8),
+      _panel(
+        title: 'Materials · live widget updates',
+        child: Column(
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _texture,
+              decoration: const InputDecoration(labelText: 'Texture'),
+              items: [
+                for (final value in _textures)
+                  DropdownMenuItem(value: value.name, child: Text(value.name)),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _texture = value);
+              },
+            ),
+            DropdownButtonFormField<SphereQuality>(
+              initialValue: _quality,
+              decoration: const InputDecoration(labelText: 'Shader quality'),
+              items: [
+                for (final value in SphereQuality.values)
+                  DropdownMenuItem(
+                    value: value,
+                    child: Text(value.name.toUpperCase()),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _quality = value);
+              },
+            ),
+            DropdownButtonFormField<SphereLightingMode>(
+              initialValue: _lightingMode,
+              decoration: const InputDecoration(labelText: 'Lighting'),
+              items: const [
+                DropdownMenuItem(
+                  value: SphereLightingMode.followCamera,
+                  child: Text('Follow camera'),
+                ),
+                DropdownMenuItem(
+                  value: SphereLightingMode.solarTime,
+                  child: Text('Solar time · UTC'),
+                ),
+                DropdownMenuItem(
+                  value: SphereLightingMode.fixed,
+                  child: Text('Fixed coordinate'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _lightingMode = value);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Custom atmosphere'),
+              value: _customGlow,
+              onChanged: (value) => setState(() => _customGlow = value),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth > 820;
+          return Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.public, color: _cyan, size: 30),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildModeButton("跟随相机", EarthLightMode.followCamera),
-                          const SizedBox(width: 10),
-                          _buildModeButton("真实时间", EarthLightMode.realTime),
-                          const SizedBox(width: 10),
-                          _buildModeButton(
-                            "固定坐标",
-                            EarthLightMode.fixedCoordinates,
+                          Text(
+                            'Flutter Sphere 3D',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17,
+                            ),
+                          ),
+                          Text(
+                            '3.0 API · camera, scene, materials, spin',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white60,
+                            ),
                           ),
                         ],
                       ),
                     ),
-
-                    // 如果是固定坐标模式，显示调节滑块
-                    AnimatedBuilder(
-                      animation: _controller,
-                      builder: (context, _) {
-                        if (_controller.lightMode ==
-                            EarthLightMode.fixedCoordinates) {
-                          return Column(
-                            children: [
-                              const Divider(color: Colors.white24),
-                              _buildSlider("光源纬度", _fixedLat, -90, 90, (val) {
-                                setState(() => _fixedLat = val);
-                                _controller.setFixedLightCoordinates(
-                                  _fixedLat,
-                                  _fixedLon,
-                                );
-                              }),
-                              _buildSlider("光源经度", _fixedLon, -180, 180, (val) {
-                                setState(() => _fixedLon = val);
-                                _controller.setFixedLightCoordinates(
-                                  _fixedLat,
-                                  _fixedLon,
-                                );
-                              }),
-                            ],
-                          );
-                        }
-                        return const SizedBox.shrink();
+                    DropdownButton<String>(
+                      value: _texture,
+                      underline: const SizedBox.shrink(),
+                      items: [
+                        for (final value in _textures)
+                          DropdownMenuItem(
+                            value: value.name,
+                            child: Text(value.name),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) setState(() => _texture = value);
                       },
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) {
-                              return const OtherPage();
-                            },
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        width: 100,
-                        height: 40,
-                        color: Colors.blueAccent,
-                        child: Text("测试"),
+                    IconButton(
+                      tooltip: 'Camera Animation Studio',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const DemoStudioPage(),
+                        ),
                       ),
+                      icon: const Icon(Icons.movie_outlined, color: _cyan),
+                    ),
+                    IconButton(
+                      tooltip: 'Texture Gallery',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const TextureGalleryPage(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.texture, color: _cyan),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Widget _buildModeButton(String label, EarthLightMode mode) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        bool isSelected = _controller.lightMode == mode;
-        return ElevatedButton(
-          onPressed: () {
-            _controller.setLightMode(mode);
-            // 如果切回固定模式，重置一下当前的滑块值进控制器
-            if (mode == EarthLightMode.fixedCoordinates) {
-              _controller.setFixedLightCoordinates(_fixedLat, _fixedLon);
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isSelected ? Colors.blueAccent : Colors.white10,
-            foregroundColor: isSelected ? Colors.white : Colors.grey,
-          ),
-          child: Text(label),
-        );
-      },
-    );
-  }
-
-  // 构建滑块
-  Widget _buildSlider(
-    String label,
-    double value,
-    double min,
-    double max,
-    ValueChanged<double> onChanged,
-  ) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 70,
-          child: Text(
-            "$label\n${value.toStringAsFixed(0)}°",
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-        ),
-        Expanded(
-          child: Slider(
-            value: value,
-            min: min,
-            max: max,
-            activeColor: Colors.orangeAccent,
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
-  }
+                const SizedBox(height: 6),
+                Expanded(
+                  child: wide
+                      ? Row(
+                          children: [
+                            Expanded(flex: 7, child: _buildSphere()),
+                            const SizedBox(width: 12),
+                            SizedBox(width: 360, child: _buildControls()),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            Expanded(flex: 6, child: _buildSphere()),
+                            const SizedBox(height: 8),
+                            Expanded(flex: 5, child: _buildControls()),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+  );
 }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_globe_3d/src/core/shader_canvas.dart';
 
-/// `GirdShader` 是一个简单的 StatefulWidget，用于显示一个基于着色器的网格。
-/// 它使用了 `UnifiedShaderCanvas` 来加载和渲染 `uniform.frag` 着色器。
+/// Displays the package's sample uniform grid shader.
+///
+/// The historical public spelling is `GirdShader` (rather than GridShader).
+/// For an application-provided shader, use [UnifiedShaderCanvas] directly.
 class GirdShader extends StatefulWidget {
-  /// 构造函数，用于创建 `GirdShader` 实例。
+  /// Creates the built-in grid shader demo.
   const GirdShader({super.key});
 
   @override
